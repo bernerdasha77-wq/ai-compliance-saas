@@ -27,11 +27,13 @@ export default function AuthModal({ isOpen, onClose, onLogin }: AuthModalProps) 
       : { email, password, full_name: fullName };
 
     try {
-      const response = await fetch(`http://localhost:8000${endpoint}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+
+const response = await fetch(`${apiUrl}${endpoint}`, {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify(payload),
+});
 
       const data = await response.json();
 
