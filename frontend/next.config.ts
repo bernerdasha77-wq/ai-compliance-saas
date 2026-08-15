@@ -1,10 +1,7 @@
-...have been deleted, the branch may not exis
-
-
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  output: 'standalone', // <- Указываем режим сборки для продакшена
+  output: 'export',  // ← РЕЖИМ ЭКСПОРТА
   reactStrictMode: true,
   images: {
     unoptimized: true,
