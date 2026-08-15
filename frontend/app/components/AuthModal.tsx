@@ -27,7 +27,7 @@ export default function AuthModal({ isOpen, onClose, onLogin }: AuthModalProps) 
       : { email, password, full_name: fullName };
 
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      const apiUrl = 'https://ai-compliance-saas-6nz5.onrender.com';
 
 const response = await fetch(`${apiUrl}${endpoint}`, {
   method: 'POST',
