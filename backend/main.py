@@ -71,7 +71,7 @@ class UserLogin(BaseModel):
 # 3. БАЗОВЫЕ ЭНДПОИНТЫ
 # ============================================
 #@app.get("/")
-a#sync def root():
+#async def root():
   #  return {"message": "AI Compliance API is working!"}
 
 @app.get("/health")
