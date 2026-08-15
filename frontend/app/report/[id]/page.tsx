@@ -33,7 +33,7 @@ export default function ReportPage() {
       try {
         const response = await fetch(`http://localhost:8000/api/reports/${reportId}`, {
           headers: {
-            Authorization: Bearer ${token},
+            Authorization: `Bearer ${token}`,
           },
         });
 
