@@ -49,9 +49,10 @@ async def options_handler():
     return JSONResponse(
         content={"message": "OK"},
         headers={
-            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Origin": "https://ai-cmpliance.netlify.app",  # ← Ваш точный URL!
             "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
             "Access-Control-Allow-Headers": "Content-Type, Authorization, Accept",
+            "Access-Control-Allow-Credentials": "true",
         },
     )
 # ============================================
@@ -69,9 +70,9 @@ class UserLogin(BaseModel):
 # ============================================
 # 3. БАЗОВЫЕ ЭНДПОИНТЫ
 # ============================================
-@app.get("/")
-async def root():
-    return {"message": "AI Compliance API is working!"}
+#@app.get("/")
+a#sync def root():
+  #  return {"message": "AI Compliance API is working!"}
 
 @app.get("/health")
 async def health():
