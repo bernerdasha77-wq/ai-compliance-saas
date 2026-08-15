@@ -11,12 +11,14 @@ from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from datetime import datetime
 import json
+from fastapi.responses import JSONResponse
 
 from services.parser import extract_text_from_file
 from services.ai_service import analyze_contract
 from database import get_db, Report, User
 from encryption_utils import encrypt_data, decrypt_data
 from auth import get_password_hash, verify_password, create_access_token, decode_access_token, get_user_from_token, security 
+
 # ============================================
 # ВРЕМЕННАЯ ЗАГЛУШКА ДЛЯ АВТОРИЗАЦИИ
 # ============================================
@@ -41,6 +43,17 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+# Обработчик OPTIONS-запросов для CORS
+@app.options("/{path:path}")
+async def options_handler():
+    return JSONResponse(
+        content={"message": "OK"},
+        headers={
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+            "Access-Control-Allow-Headers": "Content-Type, Authorization, Accept",
+        },
+    )
 # ============================================
 # 2. МОДЕЛИ ДЛЯ АВТОРИЗАЦИИ
 # ============================================
