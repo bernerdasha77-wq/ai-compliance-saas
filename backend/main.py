@@ -127,7 +127,7 @@ async def login_user(user_data: UserLogin, db: Session = Depends(get_db)):
             detail="Неверный email или пароль"
         )
         if not verify_password(user_data.password, user.hashed_password):
-        raise HTTPException(
+            raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Неверный email или пароль"
         )
