@@ -1,11 +1,8 @@
-export const dynamic = 'force-static'
 'use client';
 
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-
-
 
 interface ReportDetail {
   id: number;
@@ -36,7 +33,7 @@ export default function ReportPage() {
       try {
         const response = await fetch(`http://localhost:8000/api/reports/${reportId}`, {
           headers: {
-            Authorization: `Bearer ${token}`,
+            Authorization: Bearer ${token},
           },
         });
 
@@ -66,19 +63,19 @@ export default function ReportPage() {
 
   if (loading) {
     return (
-      <main className="min-h-screen p-8 max-w-4xl mx-auto bg-white text-gray-900">
-        <div className="text-center py-12 text-gray-600">Загрузка...</div>
+      <main className="min-h-screen p-8 max-w-4xl mx-auto bg-white text-gray-900 dark:bg-gray-900 dark:text-white">
+        <div className="text-center py-12 text-gray-600 dark:text-gray-400">Загрузка...</div>
       </main>
     );
   }
 
   if (error || !report) {
     return (
-      <main className="min-h-screen p-8 max-w-4xl mx-auto bg-white text-gray-900">
-        <div className="p-4 bg-red-50 border border-red-400 rounded-lg text-red-800">
+      <main className="min-h-screen p-8 max-w-4xl mx-auto bg-white text-gray-900 dark:bg-gray-900 dark:text-white">
+        <div className="p-4 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 rounded-lg text-red-800 dark:text-red-300">
           {error || 'Отчёт не найден'}
         </div>
-        <Link href="/history" className="mt-4 inline-block text-blue-600 hover:underline">
+        <Link href="/history" className="mt-4 inline-block text-blue-600 dark:text-blue-400 hover:underline">
           ← Вернуться к истории
         </Link>
       </main>
@@ -86,22 +83,22 @@ export default function ReportPage() {
   }
 
   return (
-    <main className="min-h-screen p-8 max-w-4xl mx-auto bg-white text-gray-900">
+    <main className="min-h-screen p-8 max-w-4xl mx-auto bg-white text-gray-900 dark:bg-gray-900 dark:text-white">
       <div className="mb-6">
-        <Link href="/history" className="text-blue-600 hover:underline">
+        <Link href="/history" className="text-blue-600 dark:text-blue-400 hover:underline">
           ← Назад к истории
         </Link>
       </div>
 
-      <div className="bg-gray-50 rounded-lg p-6 border border-gray-300 shadow-sm">
+      <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-6 border border-gray-300 dark:border-gray-700 shadow-sm">
         <div className="flex justify-between items-start mb-4">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">{report.file_name}</h1>
-            <p className="text-sm text-gray-600 mt-1">
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{report.file_name}</h1>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
               {new Date(report.created_at).toLocaleString('ru-RU')}
             </p>
           </div>
-          <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium">
+          <span className="px-3 py-1 bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 rounded-full text-sm font-medium">
             {report.risk_level === 'low' && '🟢 Низкий риск'}
             {report.risk_level === 'medium' && '🟡 Средний риск'}
             {report.risk_level === 'high' && '🔴 Высокий риск'}
@@ -110,29 +107,27 @@ export default function ReportPage() {
 
         {report.analysis && (
           <div className="space-y-4 mt-4">
-            <div className="bg-white p-4 rounded border border-gray-300">
-              <p className="text-gray-800 font-semibold mb-2">Общий статус:</p>
-              <p className="text-gray-900 text-lg font-bold">
+            <div className="bg-white dark:bg-gray-700 p-4 rounded border border-gray-300 dark:border-gray-600">
+              <p className="text-gray-800 dark:text-gray-200 font-semibold mb-2">Общий статус:</p>
+              <p className="text-gray-900 dark:text-white text-lg font-bold">
                 {report.analysis.overall_status || 'Анализ завершён'}
               </p>
               {report.analysis.full_analysis && (
-                <p className="text-gray-700 mt-2 text-sm">
-                  {report.analysis.full_analysis}
+                <p className="text-gray-700 dark:text-gray-300 mt-2 text-sm">
+                {report.analysis.full_analysis}
                 </p>
               )}
             </div>
 
             {report.analysis.rules && (
               <div className="space-y-2">
-                <p className="font-semibold text-gray-800">Проверка пунктов:</p>
+                <p className="font-semibold text-gray-800 dark:text-gray-200">Проверка пунктов:</p>
                 {report.analysis.rules.map((rule: any, index: number) => (
                   <div
                     key={index}
-
-
-className="flex items-center justify-between p-3 bg-white rounded border border-gray-300 shadow-sm"
+                    className="flex items-center justify-between p-3 bg-white dark:bg-gray-700 rounded border border-gray-300 dark:border-gray-600 shadow-sm"
                   >
-                    <span className="text-gray-800 font-medium">{rule.name}</span>
+                    <span className="text-gray-800 dark:text-gray-200 font-medium">{rule.name}</span>
                     <span className="text-lg font-bold">{rule.status}</span>
                   </div>
                 ))}
@@ -140,11 +135,11 @@ className="flex items-center justify-between p-3 bg-white rounded border border-
             )}
 
             {report.analysis.recommendations && report.analysis.recommendations.length > 0 && (
-              <div className="mt-4 p-4 bg-blue-50 border border-blue-300 rounded-lg">
-                <p className="font-semibold text-gray-800 mb-2">Рекомендации:</p>
+              <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-900/30 border border-blue-300 dark:border-blue-700 rounded-lg">
+                <p className="font-semibold text-gray-800 dark:text-gray-200 mb-2">Рекомендации:</p>
                 <ul className="list-disc pl-5 space-y-1">
                   {report.analysis.recommendations.map((rec: string, index: number) => (
-                    <li key={index} className="text-gray-800 text-sm">
+                    <li key={index} className="text-gray-800 dark:text-gray-200 text-sm">
                       {rec}
                     </li>
                   ))}
@@ -157,9 +152,9 @@ className="flex items-center justify-between p-3 bg-white rounded border border-
                 {Object.entries(report.checklist).map(([key, value]) => (
                   <div
                     key={key}
-                    className="flex items-center justify-between p-3 bg-white rounded border border-gray-300 shadow-sm"
+                    className="flex items-center justify-between p-3 bg-white dark:bg-gray-700 rounded border border-gray-300 dark:border-gray-600 shadow-sm"
                   >
-                    <span className="text-gray-800 font-medium">{key}</span>
+                    <span className="text-gray-800 dark:text-gray-200 font-medium">{key}</span>
                     <span className="text-xl font-bold">
                       {value ? '✅' : '❌'}
                     </span>
