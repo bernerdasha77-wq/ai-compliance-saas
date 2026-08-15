@@ -70,13 +70,15 @@ export default function Home() {
     formData.append('company_name', 'Тестовая компания');
 
     try {
-      const response = await fetch('http://localhost:8000/api/analyze', {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-        body: formData,
-      });
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+
+const response = await fetch(`${apiUrl}/api/analyze`, {
+  method: 'POST',
+  headers: {
+    Authorization: `Bearer ${token}`,
+  },
+  body: formData,
+});
 
       if (response.status === 401) {
         localStorage.removeItem('access_token');
