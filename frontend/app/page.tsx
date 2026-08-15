@@ -70,7 +70,7 @@ export default function Home() {
     formData.append('company_name', 'Тестовая компания');
 
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      const apiUrl = 'https://ai-compliance-saas-6nz5.onrender.com';
 
 const response = await fetch(`${apiUrl}/api/analyze`, {
   method: 'POST',
