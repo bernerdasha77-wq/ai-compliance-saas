@@ -33,11 +33,14 @@ app = FastAPI(title="AI Compliance SaaS")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=[
+        "http://localhost:3000",
+        "https://ai-compliance.netlify.app"  # ← ВАШ URL ОТ NETLIFY
+    ],
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
 # ============================================
 # 2. МОДЕЛИ ДЛЯ АВТОРИЗАЦИИ
 # ============================================
