@@ -1,4 +1,4 @@
- #!/usr/bin/env python3
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 import sys
@@ -7,17 +7,17 @@ sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 
 from fastapi import FastAPI, UploadFile, File, HTTPException, Depends, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from datetime import datetime
 import json
-from fastapi.responses import JSONResponse
 
 from services.parser import extract_text_from_file
 from services.ai_service import analyze_contract
 from database import get_db, Report, User
 from encryption_utils import encrypt_data, decrypt_data
-from auth import get_password_hash, verify_password, create_access_token, decode_access_token, get_user_from_token, security 
+from auth import get_password_hash, verify_password, create_access_token, decode_access_token, get_user_from_token, security
 
 # ============================================
 # ВРЕМЕННАЯ ЗАГЛУШКА ДЛЯ АВТОРИЗАЦИИ
@@ -28,6 +28,7 @@ async def get_current_user_stub():
     Возвращает тестового пользователя с ID=1.
     """
     return {"id": 1, "email": "test@example.com", "full_name": "Test User"}
+
 # ============================================
 # 1. НАСТРОЙКА ПРИЛОЖЕНИЯ
 # ============================================
@@ -43,18 +44,22 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-# Обработчик OPTIONS-запросов для CORS
+
+# ============================================
+# ОБРАБОТЧИК OPTIONS-ЗАПРОСОВ ДЛЯ CORS
+# ============================================
 @app.options("/{path:path}")
 async def options_handler():
     return JSONResponse(
         content={"message": "OK"},
         headers={
-            "Access-Control-Allow-Origin": "https://ai-cmpliance.netlify.app",  # ← Ваш точный URL!
+            "Access-Control-Allow-Origin": "https://ai-cmpliance.netlify.app",
             "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
             "Access-Control-Allow-Headers": "Content-Type, Authorization, Accept",
             "Access-Control-Allow-Credentials": "true",
         },
     )
+
 # ============================================
 # 2. МОДЕЛИ ДЛЯ АВТОРИЗАЦИИ
 # ============================================
@@ -70,9 +75,9 @@ class UserLogin(BaseModel):
 # ============================================
 # 3. БАЗОВЫЕ ЭНДПОИНТЫ
 # ============================================
-#@app.get("/")
-#async def root():
-  #  return {"message": "AI Compliance API is working!"}
+@app.get("/")
+async def root():
+    return {"message": "AI Compliance API is working!"}
 
 @app.get("/health")
 async def health():
@@ -83,9 +88,6 @@ async def health():
 # ============================================
 @app.post("/api/register")
 async def register_user(user_data: UserRegister, db: Session = Depends(get_db)):
-    """Регистрация нового пользователя"""
-    
-    # Проверяем, не существует ли пользователь
     existing_user = db.query(User).filter(User.email == user_data.email).first()
     if existing_user:
         raise HTTPException(
@@ -93,7 +95,6 @@ async def register_user(user_data: UserRegister, db: Session = Depends(get_db)):
             detail="Пользователь с таким email уже существует"
         )
     
-    # Создаём пользователя
     hashed_password = get_password_hash(user_data.password)
     new_user = User(
         email=user_data.email,
@@ -104,7 +105,6 @@ async def register_user(user_data: UserRegister, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(new_user)
     
-    # Создаём токен
     access_token = create_access_token(data={"sub": str(new_user.id), "email": new_user.email})
     
     return {
@@ -120,24 +120,18 @@ async def register_user(user_data: UserRegister, db: Session = Depends(get_db)):
 
 @app.post("/api/login")
 async def login_user(user_data: UserLogin, db: Session = Depends(get_db)):
-    """Вход пользователя"""
-    
-    # Ищем пользователя
     user = db.query(User).filter(User.email == user_data.email).first()
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Неверный email или пароль"
         )
-    
-    # Проверяем пароль
-    if not verify_password(user_data.password, user.hashed_password):
+        if not verify_password(user_data.password, user.hashed_password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Неверный email или пароль"
         )
     
-    # Создаём токен
     access_token = create_access_token(data={"sub": str(user.id), "email": user.email})
     
     return {
@@ -152,33 +146,16 @@ async def login_user(user_data: UserLogin, db: Session = Depends(get_db)):
     }
 
 # ============================================
-# 5. ПОЛУЧЕНИЕ ТЕКУЩЕГО ПОЛЬЗОВАТЕЛЯ
-# ============================================
-def get_current_user(token: str, db: Session):
-    """Получает текущего пользователя по токену (временная заглушка)"""
-    # Пока просто возвращаем первого пользователя
-# ПОТОМ ЗАМЕНИМ НА РЕАЛЬНУЮ ПРОВЕРКУ ТОКЕНА
-    user = db.query(User).first()
-    if not user:
-        user = User(email="test@example.com", hashed_password="temp", full_name="Test")
-        db.add(user)
-        db.commit()
-        db.refresh(user)
-    return user
-
-# ============================================
-# 6. АНАЛИЗ ДОГОВОРА (С СОХРАНЕНИЕМ В БД)
+# 5. АНАЛИЗ ДОГОВОРА (С АВТОРИЗАЦИЕЙ)
 # ============================================
 @app.post("/api/analyze", response_model=None)
 async def analyze_contract_endpoint(
     file: UploadFile = File(...),
     company_name: str = "Test Company",
     db = Depends(get_db),
-    token: str = Depends(security)  # ← Извлекаем токен из заголовка
+    token: str = Depends(security)
 ):
-    """Анализирует загруженный договор (с авторизацией через токен)"""
-    
-    # 1. Проверяем токен и получаем пользователя
+    # Проверяем токен
     user = await get_user_from_token(token, db)
     if not user:
         raise HTTPException(
@@ -187,18 +164,13 @@ async def analyze_contract_endpoint(
             headers={"WWW-Authenticate": "Bearer"},
         )
     
-    # 2. Проверяем файл
     if not file.filename.endswith(('.pdf', '.docx')):
         raise HTTPException(status_code=400, detail="Поддерживаются только PDF и DOCX")
     
     try:
-        # 3. Извлекаем текст
         text = await extract_text_from_file(file)
-        
-        # 4. Отправляем в AI
         analysis = await analyze_contract(text)
         
-        # 5. Формируем чек-лист
         checklist = {}
         if analysis.get('rules'):
             for rule in analysis['rules']:
@@ -206,7 +178,6 @@ async def analyze_contract_endpoint(
                 status_text = rule.get('status', '')
                 checklist[name] = '🟢' in status_text or 'Соответствует' in status_text
         
-        # 6. Определяем уровень риска
         total = len(checklist) if checklist else 1
         passed = sum(1 for v in checklist.values() if v)
         risk_ratio = passed / total if total > 0 else 0
@@ -218,9 +189,8 @@ async def analyze_contract_endpoint(
         else:
             risk_level = "high"
         
-        # 7. Сохраняем отчёт (привязываем к пользователю из токена!)
         report = Report(
-            user_id=user.id,  # ← ТЕПЕРЬ РЕАЛЬНЫЙ ПОЛЬЗОВАТЕЛЬ ИЗ ТОКЕНА
+            user_id=user.id,
             file_name=file.filename,
             risk_level=risk_level,
             status="processed",
@@ -233,7 +203,6 @@ async def analyze_contract_endpoint(
         db.commit()
         db.refresh(report)
         
-        # 8. Возвращаем результат
         return {
             "status": "processed",
             "report_id": report.id,
@@ -249,14 +218,13 @@ async def analyze_contract_endpoint(
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Ошибка: {str(e)}") 
+        raise HTTPException(status_code=500, detail=f"Ошибка: {str(e)}")
 
 # ============================================
-# 7. ПОЛУЧЕНИЕ ОТЧЁТОВ
+# 6. ПОЛУЧЕНИЕ ОТЧЁТОВ
 # ============================================
 @app.get("/api/reports/{report_id}")
 async def get_report(report_id: int, db: Session = Depends(get_db)):
-    """Получить отчёт по ID (с расшифровкой)"""
     report = db.query(Report).filter(Report.id == report_id).first()
     if not report:
         raise HTTPException(status_code=404, detail="Отчёт не найден")
@@ -272,7 +240,6 @@ async def get_report(report_id: int, db: Session = Depends(get_db)):
 
 @app.get("/api/reports/user/{user_id}")
 async def get_user_reports(user_id: int, db: Session = Depends(get_db)):
-    """Получить все отчёты пользователя"""
     reports = db.query(Report).filter(Report.user_id == user_id).all()
     return [
         {
@@ -284,12 +251,8 @@ async def get_user_reports(user_id: int, db: Session = Depends(get_db)):
         for r in reports
     ]
 
-# ============================================
-# 8. ТЕСТОВЫЙ ЭНДПОИНТ (ПРОВЕРКА БД)
-# ============================================
 @app.get("/api/users")
 async def get_users(db: Session = Depends(get_db)):
-    """Получить всех пользователей (для теста)"""
     users = db.query(User).all()
     return [
         {
@@ -300,3 +263,4 @@ async def get_users(db: Session = Depends(get_db)):
         }
         for u in users
     ]
+
