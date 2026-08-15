@@ -5,7 +5,7 @@ import sys
 import io
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 
-from fastapi import FastAPI, UploadFile, File, HTTPException, Depends, status
+from fastapi import FastAPI, UploadFile, File, HTTPException, Depends, status, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
@@ -33,32 +33,22 @@ async def get_current_user_stub():
 # 1. НАСТРОЙКА ПРИЛОЖЕНИЯ
 # ============================================
 app = FastAPI(title="AI Compliance SaaS")
+@app.middleware("http")
+async def cors_middleware(request: Request, call_next):
+    # Обработка OPTIONS-запросов (preflight)
+    if request.method == "OPTIONS":
+        response = JSONResponse(content={"message": "OK"})
+        response.headers["Access-Control-Allow-Origin"] = "https://ai-cmpliance.netlify.app"
+        response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
+        response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, Accept"
+        response.headers["Access-Control-Allow-Credentials"] = "true"
+        return response
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",
-        "https://ai-cmpliance.netlify.app"  # ← ВАШ URL ОТ NETLIFY
-    ],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-# ============================================
-# ОБРАБОТЧИК OPTIONS-ЗАПРОСОВ ДЛЯ CORS
-# ============================================
-@app.options("/{path:path}")
-async def options_handler():
-    return JSONResponse(
-        content={"message": "OK"},
-        headers={
-            "Access-Control-Allow-Origin": "https://ai-cmpliance.netlify.app",
-            "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-            "Access-Control-Allow-Headers": "Content-Type, Authorization, Accept",
-            "Access-Control-Allow-Credentials": "true",
-        },
-    )
+    # Обработка всех остальных запросов
+    response = await call_next(request)
+    response.headers["Access-Control-Allow-Origin"] = "https://ai-cmpliance.netlify.app"
+    response.headers["Access-Control-Allow-Credentials"] = "true"
+    return response
 
 # ============================================
 # 2. МОДЕЛИ ДЛЯ АВТОРИЗАЦИИ
