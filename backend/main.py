@@ -35,7 +35,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:3000",
-        "https://ai-compliance.netlify.app"  # ← ВАШ URL ОТ NETLIFY
+        "https://ai-cmpliance.netlify.app"  # ← ВАШ URL ОТ NETLIFY
     ],
     allow_credentials=True,
     allow_methods=["*"],
