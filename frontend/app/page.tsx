@@ -124,6 +124,12 @@ const response = await fetch(`${apiUrl}/api/analyze`, {
                 >
                   Мои отчёты
                 </Link>
+                <Link
+                  href="/admin"
+                  className="text-sm text-white/80 hover:text-white hover:underline transition"
+              >
+                   ⚙️ Админка
+                </Link>
                 <button
                   onClick={handleLogout}
                   className="px-4 py-1.5 bg-white/20 hover:bg-white/30 rounded-lg text-sm font-medium transition"
