@@ -27,19 +27,19 @@ export default function AdminPage() {
         const [usersRes, reportsRes, statsRes] = await Promise.all([
           fetch(`${apiUrl}/api/admin/users`, {
             headers: {
-              'Authorization': Bearer ${token},
+              'Authorization': `Bearer ${token}`,
               'X-Admin-Email': user.email,
             }
           }),
           fetch(`${apiUrl}/api/admin/reports`, {
             headers: {
-              'Authorization': Bearer ${token},
+              'Authorization': `Bearer ${token}`,
               'X-Admin-Email': user.email,
             }
           }),
           fetch(`${apiUrl}/api/admin/stats`, {
             headers: {
-              'Authorization': Bearer ${token},
+              'Authorization': `Bearer ${token}`,
               'X-Admin-Email': user.email,
             }
           })
