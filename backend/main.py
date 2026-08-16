@@ -5,7 +5,7 @@ import sys
 import io
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 
-from fastapi import FastAPI, UploadFile, File, HTTPException, Depends, status, Request
+from fastapi import FastAPI, UploadFile, File, HTTPException, Depends, status, Request, Header
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
@@ -18,6 +18,8 @@ from services.ai_service import analyze_contract
 from database import get_db, Report, User
 from encryption_utils import encrypt_data, decrypt_data
 from auth import get_password_hash, verify_password, create_access_token, decode_access_token, get_user_from_token, security
+
+ADMIN_EMAIL = "bernerdasha@yandex.ru"
 
 # ============================================
 # ВРЕМЕННАЯ ЗАГЛУШКА ДЛЯ АВТОРИЗАЦИИ
@@ -253,4 +255,73 @@ async def get_users(db: Session = Depends(get_db)):
         }
         for u in users
     ]
+# ============================================
+# АДМИН-ПАНЕЛЬ (ТОЛЬКО ДЛЯ ВАС)
+# ============================================
 
+@app.get("/api/admin/users")
+async def get_all_users(
+    x_admin_email: str = Header(...),
+    db: Session = Depends(get_db)
+):
+    """Получить всех пользователей с количеством их отчётов"""
+    # Проверка, что это администратор
+    if x_admin_email != ADMIN_EMAIL:
+        raise HTTPException(status_code=403, detail="Доступ запрещён")
+    
+    users = db.query(User).all()
+    result = []
+    for user in users:
+        reports_count = db.query(Report).filter(Report.user_id == user.id).count()
+        result.append({
+            "id": user.id,
+            "email": user.email,
+            "full_name": user.full_name,
+            "created_at": user.created_at.isoformat(),
+            "reports_count": reports_count,
+            "is_active": user.is_active
+        })
+    return result
+
+@app.get("/api/admin/reports")
+async def get_all_reports(
+    x_admin_email: str = Header(...),
+    db: Session = Depends(get_db)
+):
+    """Получить все отчёты всех пользователей (последние 50)"""
+    # Проверка, что это администратор
+    if x_admin_email != ADMIN_EMAIL:
+        raise HTTPException(status_code=403, detail="Доступ запрещён")
+    
+    reports = db.query(Report).order_by(Report.created_at.desc()).limit(50).all()
+    result = []
+    for report in reports:
+        user = db.query(User).filter(User.id == report.user_id).first()
+        result.append({
+            "id": report.id,
+            "file_name": report.file_name,
+            "user_email": user.email if user else "неизвестно",
+            "risk_level": report.risk_level,
+            "created_at": report.created_at.isoformat(),
+            "status": report.status
+        })
+    return result
+
+@app.get("/api/admin/stats")
+async def get_stats(
+    x_admin_email: str = Header(...),
+    db: Session = Depends(get_db)
+):
+    """Получить общую статистику"""
+    # Проверка, что это администратор
+    if x_admin_email != ADMIN_EMAIL:
+        raise HTTPException(status_code=403, detail="Доступ запрещён")
+    
+    total_users = db.query(User).count()
+    total_reports = db.query(Report).count()
+    active_users = db.query(User).filter(User.is_active == 1).count()
+    return {
+        "total_users": total_users,
+        "total_reports": total_reports,
+        "active_users": active_users,
+    }
