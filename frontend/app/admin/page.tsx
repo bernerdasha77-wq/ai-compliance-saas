@@ -45,7 +45,7 @@ export default function AdminPage() {
           })
         ]);
 
-        if (!usersRes.ok  !reportsRes.ok  !statsRes.ok) {
+        if (!usersRes.ok || !reportsRes.ok || !statsRes.ok) {
           throw new Error('Ошибка загрузки данных. Проверьте права доступа.');
         }
 
