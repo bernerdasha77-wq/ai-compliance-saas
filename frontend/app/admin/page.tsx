@@ -2,11 +2,20 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+interface AdminStats {
+  total_users: number;
+  total_reports: number;
+  active_users: number;
+}
 
 export default function AdminPage() {
   const [users, setUsers] = useState([]);
   const [reports, setReports] = useState([]);
-  const [stats, setStats] = useState({});
+  const [stats, setStats] = useState<AdminStats>({
+  total_users: 0,
+  total_reports: 0,
+  active_users: 0,
+});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
