@@ -22,7 +22,7 @@ sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 # ============================================
 # АДМИНИСТРАТОР
 # ============================================
-ADMIN_EMAIL = "bernerdasha@yandex.ru"  # ← ЗАМЕНИТЕ НА ВАШУ ПОЧТУ!
+ADMIN_EMAIL = "ваша_почта@example.com"  # ← ЗАМЕНИТЕ НА ВАШУ ПОЧТУ!
 
 # ============================================
 # ПРИЛОЖЕНИЕ
@@ -111,7 +111,127 @@ async def login_user(user_data: UserLogin, db: Session = Depends(get_db)):
     if not verify_password(user_data.password, user.hashed_password):
         raise HTTPException(status_code=401, detail="Неверный email или пароль")
     
-    access_token = create_access_token(data={"sub": str(user."full_name": u.full_name,
+    access_token = create_access_token(data={"sub": str(user.id), "email": user.email})
+    
+    return {
+        "message": "Вход выполнен",
+        "user": {
+            "id": user.id,
+            "email": user.email,
+            "full_name": user.full_name
+        },
+        "access_token": access_token,
+        "token_type": "bearer"
+    }
+
+# ============================================
+# АНАЛИЗ ДОГОВОРА (С АВТОРИЗАЦИЕЙ)
+# ============================================
+@app.post("/api/analyze", response_model=None)
+async def analyze_contract_endpoint(
+    file: UploadFile = File(...),
+    company_name: str = "Test Company",
+    db = Depends(get_db),
+    token: str = Depends(security)
+):
+    user = await get_user_from_token(token, db)
+    if not user:
+        raise HTTPException(status_code=401, detail="Неверный или просроченный токен")
+    
+    if not file.filename.endswith(('.pdf', '.docx')):
+        raise HTTPException(status_code=400, detail="Поддерживаются только PDF и DOCX")
+    
+    try:
+        text = await extract_text_from_file(file)
+        analysis = await analyze_contract(text)
+        
+        checklist = {}
+        if analysis.get('rules'):
+            for rule in analysis['rules']:
+                name = rule.get('name', '')
+                status_text = rule.get('status', '')
+                checklist[name] = '🟢' in status_text or 'Соответствует' in status_text
+        
+        total = len(checklist) if checklist else 1
+        passed = sum(1 for v in checklist.values() if v)
+        risk_ratio = passed / total if total > 0 else 0
+        
+        if risk_ratio == 1.0:
+            risk_level = "low"
+        elif risk_ratio >= 0.6:
+            risk_level = "medium"
+        else:
+            risk_level = "high"
+        
+        report = Report(
+            user_id=user.id,
+            file_name=file.filename,
+            risk_level=risk_level,
+            status="processed",
+            text_preview=encrypt_data(text[:500] + "..." if len(text) > 500 else text),
+            analysis_results=encrypt_data(json.dumps(analysis, ensure_ascii=False)),
+            checklist=checklist,
+            created_at=datetime.utcnow()
+        )
+        db.add(report)
+        db.commit()
+        db.refresh(report)
+        
+        return {
+            "status": "processed",
+            "report_id": report.id,
+            "company": company_name,
+            "file_name": file.filename,
+            "text_preview": text[:500] + "..." if len(text) > 500 else text,
+            "analysis": analysis,
+            "checklist": checklist,
+            "risk_level": risk_level,
+            "created_at": report.created_at.isoformat()
+        }
+        
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Ошибка: {str(e)}")
+
+# ============================================
+# ПОЛУЧЕНИЕ ОТЧЁТОВ
+# ============================================
+@app.get("/api/reports/{report_id}")
+async def get_report(report_id: int, db: Session = Depends(get_db)):
+    report = db.query(Report).filter(Report.id == report_id).first()
+    if not report:
+        raise HTTPException(status_code=404, detail="Отчёт не найден")
+    
+    return {
+        "id": report.id,
+        "file_name": report.file_name,
+        "risk_level": report.risk_level,
+        "analysis": json.loads(decrypt_data(report.analysis_results)),
+        "checklist": report.checklist,
+        "created_at": report.created_at.isoformat()
+    }
+
+@app.get("/api/reports/user/{user_id}")
+async def get_user_reports(user_id: int, db: Session = Depends(get_db)):
+    reports = db.query(Report).filter(Report.user_id == user_id).all()
+    return [
+        {
+            "id": r.id,
+            "file_name": r.file_name,
+            "risk_level": r.risk_level,
+            "created_at": r.created_at.isoformat()
+        }
+        for r in reports
+    ]
+
+@app.get("/api/users")
+async def get_users(db: Session = Depends(get_db)):
+    users = db.query(User).all()
+    return [
+        {
+            "id": u.id,
+            "email": u.email,"full_name": u.full_name,
             "created_at": u.created_at.isoformat()
         }
         for u in users
