@@ -40,7 +40,7 @@ async def cors_middleware(request: Request, call_next):
     # Обработка OPTIONS-запросов (preflight)
     if request.method == "OPTIONS":
         response = JSONResponse(content={"message": "OK"})
-        response.headers["Access-Control-Allow-Origin"] = "https://ai-cmpliance.netlify.app"
+        response.headers["Access-Control-Allow-Origin"] = "*"
         response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
         response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, Accept"
         response.headers["Access-Control-Allow-Credentials"] = "true"
@@ -48,7 +48,7 @@ async def cors_middleware(request: Request, call_next):
 
     # Обработка всех остальных запросов
     response = await call_next(request)
-    response.headers["Access-Control-Allow-Origin"] = "https://ai-cmpliance.netlify.app"
+    response.headers["Access-Control-Allow-Origin"] = "*"
     response.headers["Access-Control-Allow-Credentials"] = "true"
     return response
 
