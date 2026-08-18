@@ -31,7 +31,8 @@ export default function ReportPage() {
       }
 
       try {
-        const response = await fetch(`http://localhost:8000/api/reports/${reportId}`, {
+        const apiUrl = 'https://ai-compliance-saas-6nz5.onrender.com';
+        const response = await fetch(`${apiUrl}/api/reports/${reportId}`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },

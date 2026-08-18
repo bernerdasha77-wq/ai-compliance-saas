@@ -28,11 +28,12 @@ export default function HistoryPage() {
 
       try {
         const user = JSON.parse(userData);
-        const response = await fetch(`http://localhost:8000/api/reports/user/${user.id}`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
+        const apiUrl = 'https://ai-compliance-saas-6nz5.onrender.com';
+const response = await fetch(`${apiUrl}/api/reports/user/${user.id}`, {
+  headers: {
+    Authorization: `Bearer ${token}`,
+  },
+})
 
         if (response.status === 401) {
           localStorage.removeItem('access_token');

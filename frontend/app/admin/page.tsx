@@ -30,7 +30,7 @@ export default function AdminPage() {
 
       const user = JSON.parse(userData);
       const token = localStorage.getItem('access_token');
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      const apiUrl = 'https://ai-compliance-saas-6nz5.onrender.com';
 
       try {
         const [usersRes, reportsRes, statsRes] = await Promise.all([
