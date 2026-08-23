@@ -74,7 +74,7 @@ export default function Home() {
       const response = await fetch(`${apiUrl}/api/analyze`, {
         method: 'POST',
         headers: {
-          Authorization: Bearer ${token},
+          Authorization: `Bearer ${token}`,
         },
         body: formData,
       });
@@ -159,7 +159,7 @@ export default function Home() {
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6 animate-fadeInUp" style={{ animationDelay: '0.2s' }}>
+        <form onSubmit={handleSubmit} className="space-y-6 animate-fadeInUp">
           <div className="relative border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-2xl p-10 text-center hover:border-blue-500 dark:hover:border-blue-400 transition bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm">
             <input
               type="file"
@@ -215,7 +215,7 @@ export default function Home() {
 
             <div className="space-y-4">
               <div className="flex items-center gap-3">
-              <span className="font-medium text-gray-700 dark:text-gray-300">Статус:</span>
+                <span className="font-medium text-gray-700 dark:text-gray-300">Статус:</span>
                 <span className="px-3 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-full text-sm font-medium">
                   {result.status || 'Готово'}
                 </span>
@@ -282,3 +282,6 @@ export default function Home() {
     </main>
   );
 }
+
+
+
