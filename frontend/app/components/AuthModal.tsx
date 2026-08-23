@@ -1,4 +1,4 @@
-use client';
+'use client';
 
 import { useState } from 'react';
 
@@ -140,3 +140,5 @@ export default function AuthModal({ isOpen, onClose, onLogin }: AuthModalProps) 
     </div>
   );
 }
+
+
