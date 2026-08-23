@@ -70,15 +70,14 @@ export default function Home() {
     formData.append('company_name', 'Тестовая компания');
 
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-
-const response = await fetch(`${apiUrl}/api/analyze`, {
-  method: 'POST',
-  headers: {
-    Authorization: `Bearer ${token}`,
-  },
-  body: formData,
-});
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://ai-compliance-saas-6nz5.onrender.com';
+      const response = await fetch(`${apiUrl}/api/analyze`, {
+        method: 'POST',
+        headers: {
+          Authorization: Bearer ${token},
+        },
+        body: formData,
+      });
 
       if (response.status === 401) {
         localStorage.removeItem('access_token');
@@ -104,68 +103,64 @@ const response = await fetch(`${apiUrl}/api/analyze`, {
   };
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 dark:from-gray-900 dark:to-gray-800">
-      <header className="bg-gradient-to-r from-blue-700 via-indigo-700 to-purple-700 dark:from-blue-800 dark:via-indigo-800 dark:to-purple-800 text-white shadow-lg">
-        <div className="max-w-6xl mx-auto px-4 py-4 flex justify-between items-center">
+    <main className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50/50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
+      {/* Шапка */}
+      <header className="sticky top-0 z-50 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md border-b border-gray-100 dark:border-gray-800">
+        <div className="max-w-6xl mx-auto px-4 py-3 flex justify-between items-center">
           <div className="flex items-center gap-2">
             <span className="text-2xl">🛡️</span>
-            <h1 className="text-2xl font-bold tracking-tight">AI Compliance Checker</h1>
+            <h1 className="text-xl font-bold text-gray-900 dark:text-white tracking-tight">
+              AI Compliance Checker
+            </h1>
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
             <ThemeToggle />
             {isAuthenticated ? (
               <>
-                <span className="text-sm text-blue-100">
-                  👤 {user?.full_name || user?.email}
+                <span className="text-sm text-gray-600 dark:text-gray-300 hidden sm:inline">
+                  {user?.full_name || user?.email}
                 </span>
                 <Link
                   href="/history"
-                  className="text-sm text-white/80 hover:text-white hover:underline transition"
+                  className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
                 >
                   Мои отчёты
                 </Link>
-              {user?.email === 'bernerdasha@yandex.ru' && (
-                <Link
-                  href="/admin"
-                  className="text-sm text-white/80 hover:text-white hover:underline transition"
-                >
-                  ⚙️ Админка
-                </Link>
-              )}
                 <button
-                  onClick={handleLogout}
-                  className="px-4 py-1.5 bg-white/20 hover:bg-white/30 rounded-lg text-sm font-medium transition"
+                onClick={handleLogout}
+                  className="px-3 py-1.5 text-sm bg-red-500/10 text-red-600 dark:text-red-400 rounded-lg hover:bg-red-500/20 transition"
                 >
                   Выйти
-                  </button>
+                </button>
               </>
             ) : (
               <button
                 onClick={() => setIsAuthOpen(true)}
-                className="px-5 py-2 bg-white text-blue-700 rounded-lg font-semibold hover:bg-blue-50 transition shadow-md"
+                className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition shadow-sm"
               >
-                Войти / Регистрация
+                Войти
               </button>
             )}
-            <a href="mailto:aicompl26@gmail.com" className="text-sm text-white/80 hover:text-white">
-  📧 Связаться
-</a>
           </div>
         </div>
       </header>
 
-      <div className="max-w-4xl mx-auto px-4 py-10">
-        <div className="text-center mb-10">
-          <h2 className="text-4xl font-bold text-gray-800 dark:text-white mb-3">
-            Проверьте договор на <span className="text-blue-600 dark:text-blue-400">безопасность</span>
+      {/* Основной контент */}
+      <div className="max-w-4xl mx-auto px-4 py-12">
+        <div className="text-center mb-12 animate-fadeInUp">
+          <h2 className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-white mb-4 leading-tight">
+            Проверьте договор на <br />
+            <span className="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+              безопасность
+            </span>
           </h2>
-          <p className="text-gray-600 dark:text-gray-300 text-lg max-w-2xl mx-auto">
+          <p className="text-lg text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
             Загрузите файл и получите AI-анализ по 5 ключевым пунктам кибербезопасности
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="border-3 border-dashed border-blue-300 dark:border-blue-600 rounded-2xl p-10 text-center hover:border-blue-500 dark:hover:border-blue-400 transition bg-white/70 dark:bg-gray-800/70 backdrop-blur-sm shadow-sm hover:shadow-md">
+        <form onSubmit={handleSubmit} className="space-y-6 animate-fadeInUp" style={{ animationDelay: '0.2s' }}>
+          <div className="relative border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-2xl p-10 text-center hover:border-blue-500 dark:hover:border-blue-400 transition bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm">
             <input
               type="file"
               accept=".pdf,.docx"
@@ -175,25 +170,27 @@ const response = await fetch(`${apiUrl}/api/analyze`, {
             />
             <label
               htmlFor="file-upload"
-              className="cursor-pointer text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 font-medium text-lg flex flex-col items-center gap-2"
+              className="cursor-pointer flex flex-col items-center gap-3"
             >
               <span className="text-5xl">📄</span>
-              {file ? file.name : 'Нажмите, чтобы выбрать файл (PDF или DOCX)'}
+              <span className="text-lg font-medium text-gray-700 dark:text-gray-300">
+                {file ? file.name : 'Нажмите, чтобы выбрать файл (PDF или DOCX)'}
+              </span>
+              {file && (
+                <span className="text-sm text-gray-500 dark:text-gray-400">
+                  Размер: {(file.size / 1024).toFixed(2)} KB
+                </span>
+              )}
             </label>
-            {file && (
-              <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
-                Размер: {(file.size / 1024).toFixed(2)} KB
-              </p>
-            )}
           </div>
 
           <button
             type="submit"
             disabled={!file || loading}
-            className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-500 dark:to-indigo-500 text-white py-4 rounded-xl font-semibold text-lg hover:from-blue-700 hover:to-indigo-700 dark:hover:from-blue-600 dark:hover:to-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed transition shadow-md hover:shadow-lg"
+            className="w-full py-4 px-6 text-lg font-semibold text-white bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl hover:from-blue-700 hover:to-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition shadow-lg hover:shadow-xl"
           >
             {loading ? (
-              <span className="flex items-center justify-center gap-2">
+              <span className="flex items-center justify-center gap-3">
                 <svg className="animate-spin h-5 w-5 text-white" viewBox="0 0 24 24">
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
@@ -207,27 +204,27 @@ const response = await fetch(`${apiUrl}/api/analyze`, {
         </form>
 
         {error && (
-          <div className="mt-6 p-4 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 rounded-xl text-red-700 dark:text-red-300">
+          <div className="mt-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl text-red-700 dark:text-red-300 animate-fadeInUp">
             ❌ {error}
           </div>
         )}
 
         {result && (
-          <div className="mt-8 bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-200 dark:border-gray-700 shadow-lg animate-fadeIn">
-            <h3 className="text-2xl font-bold text-gray-800 dark:text-white mb-4">📋 Результат анализа</h3>
-            
+          <div className="mt-10 bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-xl border border-gray-100 dark:border-gray-700 animate-fadeInUp">
+            <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">📋 Результат анализа</h3>
+
             <div className="space-y-4">
-              <div className="flex items-center gap-2">
-                <span className="font-semibold text-gray-700 dark:text-gray-300">Статус:</span>
-                <span className="px-4 py-1 bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300 rounded-full text-sm font-bold">
+              <div className="flex items-center gap-3">
+              <span className="font-medium text-gray-700 dark:text-gray-300">Статус:</span>
+                <span className="px-3 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-full text-sm font-medium">
                   {result.status || 'Готово'}
                 </span>
               </div>
 
               {result.analysis && (
-                <div className="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-xl border border-gray-200 dark:border-gray-600">
-                  <p className="text-gray-700 dark:text-gray-300 font-semibold">Общий статус:</p>
-                  <p className="text-gray-900 dark:text-white text-lg font-bold mt-1">
+                <div className="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-xl">
+                  <p className="font-medium text-gray-700 dark:text-gray-300">Общий статус:</p>
+                  <p className="text-lg font-bold text-gray-900 dark:text-white mt-1">
                     {result.analysis.overall_status || 'Анализ завершён'}
                   </p>
                 </div>
@@ -235,11 +232,11 @@ const response = await fetch(`${apiUrl}/api/analyze`, {
 
               {result.analysis?.rules && (
                 <div className="space-y-2">
-                  <p className="font-semibold text-gray-700 dark:text-gray-300">📌 Проверка пунктов:</p>
+                  <p className="font-medium text-gray-700 dark:text-gray-300">📌 Проверка пунктов:</p>
                   {result.analysis.rules.map((rule: any, index: number) => (
                     <div
                       key={index}
-                      className="flex items-center justify-between p-3 bg-white dark:bg-gray-700 rounded-xl border border-gray-200 dark:border-gray-600 shadow-sm"
+                      className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/30 rounded-xl border border-gray-200 dark:border-gray-600"
                     >
                       <span className="text-gray-800 dark:text-gray-200 font-medium">{rule.name}</span>
                       <span className="text-lg font-bold">{rule.status}</span>
@@ -249,8 +246,8 @@ const response = await fetch(`${apiUrl}/api/analyze`, {
               )}
 
               {result.analysis?.recommendations?.length > 0 && (
-                <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 rounded-xl">
-                  <p className="font-semibold text-gray-700 dark:text-gray-300 mb-2">💡 Рекомендации:</p>
+                <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl">
+                  <p className="font-medium text-gray-700 dark:text-gray-300 mb-2">💡 Рекомендации:</p>
                   <ul className="list-disc pl-5 space-y-1">
                     {result.analysis.recommendations.map((rec: string, index: number) => (
                       <li key={index} className="text-gray-700 dark:text-gray-300 text-sm">{rec}</li>
@@ -264,12 +261,10 @@ const response = await fetch(`${apiUrl}/api/analyze`, {
                   {Object.entries(result.checklist).map(([key, value]) => (
                     <div
                       key={key}
-                      className="flex items-center justify-between p-3 bg-white dark:bg-gray-700 rounded-xl border border-gray-200 dark:border-gray-600 shadow-sm"
+                      className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/30 rounded-xl border border-gray-200 dark:border-gray-600"
                     >
                       <span className="text-gray-700 dark:text-gray-300 font-medium">{key}</span>
-                      <span className="text-xl font-bold">
-                        {value ? '✅' : '❌'}
-                      </span>
+                      <span className="text-xl font-bold">{value ? '✅' : '❌'}</span>
                     </div>
                   ))}
                 </div>
