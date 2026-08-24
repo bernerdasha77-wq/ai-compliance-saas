@@ -153,12 +153,15 @@ export default function Home() {
 
       {/* Основной контент */}
       <div className="max-w-4xl mx-auto px-4 py-10">
-        <div className="text-center mb-10">
-          <h2 className="text-4xl font-bold text-gray-800 dark:text-white mb-3">
-            Проверьте договор на <span className="text-blue-600 dark:text-blue-400">безопасность</span>
+        <div className="text-center mb-10 animate-fadeInUp">
+          <h2 className="text-4xl md:text-5xl font-bold text-gray-800 dark:text-white mb-4 leading-tight">
+            Оцените риски вашего договора с <br />
+            <span className="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+      контрагентом
+            </span>
           </h2>
-          <p className="text-gray-600 dark:text-gray-300 text-lg max-w-2xl mx-auto">
-            Загрузите файл и получите AI-анализ по 5 ключевым пунктам кибербезопасности
+          <p className="text-lg text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
+    AI найдёт утечки данных, штрафы и дыры в ответственности за 2 минуты
           </p>
         </div>
 
