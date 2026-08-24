@@ -40,9 +40,6 @@ export default function AboutPage() {
               <li>
                 <strong>🔒 HTTPS</strong> — все данные передаются по защищённому каналу.
               </li>
-              <li>
-                <strong>👤 Доступ к админ-панели</strong> — только у владельца сервиса.
-              </li>
             </ul>
 
             <h2 className="text-xl font-semibold text-gray-900 dark:text-white mt-6">Что мы проверяем</h2>

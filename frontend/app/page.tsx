@@ -167,7 +167,7 @@ export default function Home() {
             </span>
           </h2>
           <p className="text-lg text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
-    AI найдёт утечки данных, штрафы и дыры в ответственности за 2 минуты
+    AI найдёт утечки данных, штрафы и дыры в ответственности 
           </p>
         </div>
 
