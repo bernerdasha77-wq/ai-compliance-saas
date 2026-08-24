@@ -58,7 +58,7 @@ export default function AboutPage() {
             <div className="mt-6 p-4 bg-gray-100 dark:bg-gray-700 rounded-xl text-sm">
               <p className="font-medium">📧 По всем вопросам:</p>
               <a href="mailto:bernerdasha@yandex.ru" className="text-blue-600 dark:text-blue-400 hover:underline">
-                bernerdasha@yandex.ru
+                aicompl26@gmail.com
               </a>
             </div>
           </div>
