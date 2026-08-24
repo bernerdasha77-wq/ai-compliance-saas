@@ -124,6 +124,12 @@ export default function Home() {
                 >
                   Мои отчёты
                 </Link>
+                <Link
+                  href="/about"
+                  className="text-sm text-white/80 hover:text-white hover:underline transition"
+                >
+                  О проекте
+                </Link>
                 {isAuthenticated && user?.email === 'bernerdasha@yandex.ru' && (
                   <Link
                   href="/admin"
