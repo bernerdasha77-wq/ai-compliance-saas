@@ -74,7 +74,7 @@ export default function Home() {
       const response = await fetch(`${apiUrl}/api/analyze`, {
         method: 'POST',
         headers: {
-          Authorization: Bearer ${token},
+          Authorization: `Bearer ${token}`,
         },
         body: formData,
       });
