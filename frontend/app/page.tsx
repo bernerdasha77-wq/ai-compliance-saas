@@ -1,4 +1,4 @@
-''use client';
+'use client';
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
@@ -74,7 +74,7 @@ export default function Home() {
       const response = await fetch(`${apiUrl}/api/analyze`, {
         method: 'POST',
         headers: {
-          Authorization: `Bearer ${token}`,
+          Authorization: Bearer ${token},
         },
         body: formData,
       });
@@ -293,3 +293,5 @@ export default function Home() {
     </main>
   );
 }
+
+
