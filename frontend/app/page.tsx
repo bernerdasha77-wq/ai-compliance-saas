@@ -74,7 +74,7 @@ export default function Home() {
       const response = await fetch(`${apiUrl}/api/analyze`, {
         method: 'POST',
         headers: {
-          Authorization: `Bearer ${token}`,
+          Authorization: Bearer ${token},
         },
         body: formData,
       });
@@ -106,120 +106,59 @@ export default function Home() {
     <main className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 dark:from-gray-900 dark:to-gray-800">
       {/* Шапка */}
       <header className="bg-gradient-to-r from-blue-700 via-indigo-700 to-purple-700 dark:from-blue-800 dark:via-indigo-800 dark:to-purple-800 text-white shadow-lg">
-  <div className="max-w-6xl mx-auto px-4 py-4">
-    {/* ============================================================
-        ВИД НА КОМПЬЮТЕРЕ (всё в одной строке) 
-        ============================================================ */}
-    <div className="hidden sm:flex justify-between items-center">
-      <div className="flex items-center gap-2">
-        <span className="text-2xl">🛡️</span>
-        <h1 className="text-2xl font-bold tracking-tight">AI Compliance Checker</h1>
-      </div>
-      <div className="flex items-center gap-4">
-        <ThemeToggle />
-        {isAuthenticated ? (
-          <>
-            <span className="text-sm text-blue-100">
-              👤 {user?.full_name || user?.email}
-            </span>
-            <Link
-              href="/history"
-              className="text-sm text-white/80 hover:text-white hover:underline transition"
-            >
-              Мои отчёты
-            </Link>
-            {isAuthenticated && user?.email === 'bernerdasha@yandex.ru' && (
-              <Link
-                href="/admin"
-                className="text-sm text-white/80 hover:text-white hover:underline transition"
+        <div className="max-w-6xl mx-auto px-4 py-4 flex justify-between items-center">
+          <div className="flex items-center gap-2">
+            <span className="text-2xl">🛡️</span>
+            <h1 className="text-2xl font-bold tracking-tight">AI Compliance Checker</h1>
+          </div>
+          <div className="flex items-center gap-4">
+            <ThemeToggle />
+            {isAuthenticated ? (
+              <>
+                <span className="text-sm text-blue-100">
+                  👤 {user?.full_name || user?.email}
+                </span>
+                <Link
+                  href="/history"
+                  className="text-sm text-white/80 hover:text-white hover:underline transition"
+                >
+                  Мои отчёты
+                </Link>
+                {isAuthenticated && user?.email === 'bernerdasha@yandex.ru' && (
+                  <Link
+                    href="/admin"
+                    className="text-sm text-white/80 hover:text-white hover:underline transition"
+                  >
+                    ⚙️ Админка
+                  </Link>
+                )}
+                <button
+                  onClick={handleLogout}
+                  className="px-4 py-1.5 bg-white/20 hover:bg-white/30 rounded-lg text-sm font-medium transition"
+                >
+                  Выйти
+                </button>
+              </>
+            ) : (
+              <button
+                onClick={() => setIsAuthOpen(true)}
+                className="px-5 py-2 bg-white text-blue-700 rounded-lg font-semibold hover:bg-blue-50 transition shadow-md"
               >
-                ⚙️ Админка
-              </Link>
+                Войти / Регистрация
+              </button>
             )}
-            <button
-              onClick={handleLogout}
-              className="px-4 py-1.5 bg-white/20 hover:bg-white/30 rounded-lg text-sm font-medium transition"
-            >
-              Выйти
-            </button>
-          </>
-        ) : (
-          <button
-            onClick={() => setIsAuthOpen(true)}
-            className="px-5 py-2 bg-white text-blue-700 rounded-lg font-semibold hover:bg-blue-50 transition shadow-md"
-          >
-            Войти / Регистрация
-          </button>
-        )}
-      </div>
-    </div>
-
-    {/* ============================================================
-        ВИД НА ТЕЛЕФОНЕ (две строки) 
-        ============================================================ */}
-    <div className="sm:hidden">
-      {/* Верхняя строка: логотип + переключатель темы + кнопка входа (если не авторизован) */}
-      <div className="flex justify-between items-center">
-        <div className="flex items-center gap-2">
-          <span className="text-2xl">🛡️</span>
-          <h1 className="text-xl font-bold tracking-tight">AI Compliance Checker</h1>
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-          <ThemeToggle />
-          {!isAuthenticated && (
-            <button
-              onClick={() => setIsAuthOpen(true)}
-              className="px-3 py-1.5 text-sm bg-white text-blue-700 rounded-lg font-semibold hover:bg-blue-50 transition shadow-md"
-            >
-              Войти
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* Нижняя строка: ссылки и кнопка выхода для авторизованных */}
-      {isAuthenticated && (
-        <div className="flex flex-wrap items-center justify-end gap-3 mt-3 pt-3 border-t border-white/20">
-          <span className="text-sm text-blue-100">
-            👤 {user?.full_name || user?.email}
-          </span>
-          <Link
-            href="/history"
-            className="text-sm text-white/80 hover:text-white hover:underline transition"
-          >
-            Мои отчёты
-          </Link>
-          {isAuthenticated && user?.email === 'bernerdasha@yandex.ru' && (
-            <Link
-              href="/admin"
-              className="text-sm text-white/80 hover:text-white hover:underline transition"
-            >
-              ⚙️ Админка
-            </Link>
-          )}
-          <button
-            onClick={handleLogout}
-            className="px-3 py-1 text-sm bg-white/20 hover:bg-white/30 rounded-lg font-medium transition"
-          >
-            Выйти
-          </button>
-        </div>
-      )}
-    </div>
-  </div>
-</header>
+      </header>
 
       {/* Основной контент */}
       <div className="max-w-4xl mx-auto px-4 py-10">
-        <div className="text-center mb-10 animate-fadeInUp">
-          <h2 className="text-4xl md:text-5xl font-bold text-gray-800 dark:text-white mb-4 leading-tight">
-            Оцените риски вашего договора с <br />
-            <span className="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-      контрагентом
-            </span>
+        <div className="text-center mb-10">
+          <h2 className="text-4xl font-bold text-gray-800 dark:text-white mb-3">
+            Проверьте договор на <span className="text-blue-600 dark:text-blue-400">безопасность</span>
           </h2>
-          <p className="text-lg text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
-    AI найдёт утечки данных, штрафы и дыры в ответственности 
+          <p className="text-gray-600 dark:text-gray-300 text-lg max-w-2xl mx-auto">
+            Загрузите файл и получите AI-анализ по 5 ключевым пунктам кибербезопасности
           </p>
         </div>
 
@@ -272,87 +211,50 @@ export default function Home() {
         )}
 
         {result && (
-                <div className="mt-8 bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-200 dark:border-gray-700 shadow-lg">
-                  <h3 className="text-2xl font-bold text-gray-800 dark:text-white mb-4">📋 Результат анализа</h3>
+          <div className="mt-8 bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-200 dark:border-gray-700 shadow-lg">
+            <h3 className="text-2xl font-bold text-gray-800 dark:text-white mb-4">📋 Результат анализа</h3>
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <span className="font-semibold text-gray-700 dark:text-gray-300">Статус:</span>
+                <span className="px-4 py-1 bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300 rounded-full text-sm font-bold">
+                  {result.status || 'Готово'}
+                </span>
+              </div>
 
-                  <div className="space-y-4">
-                    {/* Статус */}
-                    <div className="flex items-center gap-2">
-                      <span className="font-semibold text-gray-700 dark:text-gray-300">Статус:</span>
-                      <span className="px-4 py-1 bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300 rounded-full text-sm font-bold">
-                        {result.status || 'Готово'}
-                      </span>
+              {result.analysis?.overall_status && (
+                <div className="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-xl border border-gray-200 dark:border-gray-600">
+                  <p className="text-gray-700 dark:text-gray-300 font-semibold">Общий статус:</p>
+                  <p className="text-gray-900 dark:text-white text-lg font-bold mt-1">
+                    {result.analysis.overall_status}
+                  </p>
+                </div>
+              )}
+
+              {result.analysis?.full_analysis && (
+                <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-xl border border-gray-200 dark:border-gray-600">
+                  <h4 className="font-semibold text-gray-700 dark:text-gray-300 mb-2">🧠 Глубокий AI-анализ:</h4>
+                  <div className="whitespace-pre-wrap text-sm text-gray-800 dark:text-gray-200 leading-relaxed">
+                    {result.analysis.full_analysis}
+                  </div>
+                </div>
+              )}
+
+              {result.analysis?.rules && result.analysis.rules.length > 0 && (
+                <div className="space-y-2">
+                  <p className="font-semibold text-gray-700 dark:text-gray-300">📌 Проверка пунктов:</p>
+                  {result.analysis.rules.map((rule: any, index: number) => (
+                    <div
+                      key={index}
+                      className="flex items-center justify-between p-3 bg-white dark:bg-gray-700 rounded-xl border border-gray-200 dark:border-gray-600 shadow-sm"
+                    >
+                      <span className="text-gray-800 dark:text-gray-200 font-medium">{rule.name}</span>
+                      <span className="text-lg font-bold">{rule.status}</span>
                     </div>
+                  ))}
+                </div>
+              )}
 
-                    {/* Общий статус (DeepSeek) */}
-                    {result.analysis?.overall_status && (
-                      <div className="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-xl border border-gray-200 dark:border-gray-600">
-                        <p className="text-gray-700 dark:text-gray-300 font-semibold">Общий статус:</p>
-                        <p className="text-gray-900 dark:text-white text-lg font-bold mt-1">
-            {result.analysis.overall_status}
-                        </p>
-                      </div>
-                    )}
-
-      {/* Глубокий анализ (DeepSeek) */}
-      {result.analysis?.full_analysis && (
-        <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-xl border border-gray-200 dark:border-gray-600">
-          <h4 className="font-semibold text-gray-700 dark:text-gray-300 mb-2">🧠 Глубокий AI-анализ:</h4>
-          <div className="whitespace-pre-wrap text-sm text-gray-800 dark:text-gray-200 leading-relaxed">
-            {result.analysis.full_analysis}
-          </div>
-        </div>
-      )}
-
-      {/* Проверка пунктов (локальный AI) */}
-      {result.analysis?.rules && result.analysis.rules.length > 0 && (
-        <div className="space-y-2">
-          <p className="font-semibold text-gray-700 dark:text-gray-300">📌 Проверка пунктов:</p>
-          {result.analysis.rules.map((rule: any, index: number) => (
-            <div
-              key={index}
-              className="flex items-center justify-between p-3 bg-white dark:bg-gray-700 rounded-xl border border-gray-200 dark:border-gray-600 shadow-sm"
-            >
-              <span className="text-gray-800 dark:text-gray-200 font-medium">{rule.name}</span>
-              <span className="text-lg font-bold">{rule.status}</span>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Рекомендации */}
-      {result.analysis?.recommendations && result.analysis.recommendations.length > 0 && (
-        <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 rounded-xl">
-          <p className="font-semibold text-gray-700 dark:text-gray-300 mb-2">💡 Рекомендации:</p>
-          <ul className="list-disc pl-5 space-y-1">
-            {result.analysis.recommendations.map((rec: string, index: number) => (
-              <li key={index} className="text-gray-700 dark:text-gray-300 text-sm">{rec}</li>
-            ))}
-          </ul>
-        </div>
-      )}
-
-      {/* Чек-лист */}
-      {result.checklist && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-4">
-          {Object.entries(result.checklist).map(([key, value]) => (
-            <div
-              key={key}
-              className="flex items-center justify-between p-3 bg-white dark:bg-gray-700 rounded-xl border border-gray-200 dark:border-gray-600 shadow-sm"
-            >
-              <span className="text-gray-700 dark:text-gray-300 font-medium">{key}</span>
-              <span className="text-xl font-bold">
-                {value ? '✅' : '❌'}
-              </span>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  </div>
-)}
-
-              {result.analysis?.recommendations?.length > 0 && (
+              {result.analysis?.recommendations && result.analysis.recommendations.length > 0 && (
                 <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 rounded-xl">
                   <p className="font-semibold text-gray-700 dark:text-gray-300 mb-2">💡 Рекомендации:</p>
                   <ul className="list-disc pl-5 space-y-1">
@@ -391,5 +293,3 @@ export default function Home() {
     </main>
   );
 }
-
-
