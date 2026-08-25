@@ -1,4 +1,5 @@
-import os
+mport os
+import json
 from openai import OpenAI
 
 # Настройка клиента DeepSeek
@@ -79,7 +80,7 @@ async def local_analyze(text: str) -> dict:
     }
 
 # ============================================
-# DEEPSEEK AI (ПЛАТНЫЙ)
+# DEEPSEEK AI (ПЛАТНЫЙ) — СТРУКТУРИРОВАННЫЙ JSON
 # ============================================
 async def deepseek_analyze(text: str, law: str = "152-ФЗ") -> dict:
     """Глубокий анализ через DeepSeek API (платный)"""
@@ -101,11 +102,23 @@ async def deepseek_analyze(text: str, law: str = "152-ФЗ") -> dict:
     Договор:
     {text[:8000]}
     
-    Выдай отчёт в строгом формате:
+    Выдай ОТВЕТ ТОЛЬКО В ФОРМАТЕ JSON (без дополнительного текста, без кавычек вокруг JSON, только чистый JSON).
     
-    1. Статус: 🟢 Соответствует / 🟡 Требует доработки / 🔴 Нарушено
-    2. Нарушения: список конкретных нарушений с указанием статей (если есть)
-    3.Рекомендации: как исправить каждое нарушение (готовые формулировки для договора)
+    Формат ответа:
+    {{
+        "status": "🟢 Соответствует" или "🟡 Требует доработки" или "🔴 Нарушено",
+        "violations": [
+            {{
+                "description": "Описание нарушения",
+                "law": "152-ФЗ, статья ...",
+                "risk": "Высокий / Средний / Низкий"
+            }}
+        ],
+        "recommendations": [
+            "Рекомендация 1",
+            "Рекомендация 2"
+        ]
+    }}
     
     Будь максимально конкретным и полезным. Пиши на русском языке.
     """
@@ -114,21 +127,42 @@ async def deepseek_analyze(text: str, law: str = "152-ФЗ") -> dict:
         response = deepseek_client.chat.completions.create(
             model="deepseek-chat",
             messages=[
-                {"role": "system", "content": "Ты — юридический AI-эксперт по кибербезопасности."},
+                {"role": "system", "content": "Ты — юридический AI-эксперт. Отвечай только в формате JSON."},
                 {"role": "user", "content": prompt}
             ],
             temperature=0.3,
             max_tokens=4000,
         )
 
-        result = response.choices[0].message.content
+        raw = response.choices[0].message.content
+        print("[DeepSeek RAW]", raw)  # для отладки
+
+        # Пытаемся распарсить JSON
+        try:
+            data = json.loads(raw)
+        except json.JSONDecodeError:
+            return {
+                "overall_status": "⚠️ Ошибка формата ответа",
+                "full_analysis": raw,
+                "rules": [],
+                "recommendations": ["Попробуйте ещё раз"],
+                "summary": {"total": 0, "passed": 0, "failed": 0}
+            }
+
+        # Формируем структуру для сайта
+        rules = []
+        for v in data.get("violations", []):
+            rules.append({
+                "name": v.get("description", "Нарушение"),
+                "status": f"🔴 {v.get('risk', 'Риск')}"
+            })
 
         return {
-            "overall_status": "✅ Анализ завершён (DeepSeek)",
-            "full_analysis": result,
-            "rules": [],
-            "recommendations": ["Подробный анализ в тексте выше"],
-            "summary": {"total": 0, "passed": 0, "failed": 0}
+            "overall_status": data.get("status", "❌ Статус не определён"),
+            "full_analysis": "\n".join(data.get("recommendations", [])),
+            "rules": rules,
+            "recommendations": data.get("recommendations", []),
+            "summary": {"total": len(rules), "passed": 0, "failed": len(rules)}
         }
 
     except Exception as e:
