@@ -106,54 +106,106 @@ export default function Home() {
     <main className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 dark:from-gray-900 dark:to-gray-800">
       {/* Шапка */}
       <header className="bg-gradient-to-r from-blue-700 via-indigo-700 to-purple-700 dark:from-blue-800 dark:via-indigo-800 dark:to-purple-800 text-white shadow-lg">
-        <div className="max-w-6xl mx-auto px-4 py-4">
-          {/* Верхняя строка: логотип и переключатель темы */}
-          <div className="flex justify-between items-center">
-            <div className="flex items-center gap-2">
-              <span className="text-2xl">🛡️</span>
-              <h1 className="text-xl sm:text-2xl font-bold tracking-tight">AI Compliance Checker</h1>
-            </div>
-            <div className="flex items-center gap-2">
-              <ThemeToggle />
-              {!isAuthenticated && (
-                <button
-                  onClick={() => setIsAuthOpen(true)}
-                  className="px-3 py-1.5 sm:px-5 sm:py-2 text-sm bg-white text-blue-700 rounded-lg font-semibold hover:bg-blue-50 transition shadow-md"
-                >
-                  Войти
-                </button>
-              )}
-          </div>
-        </div>
+  <div className="max-w-6xl mx-auto px-4 py-4">
+    {/* ============================================================
+        ВИД НА КОМПЬЮТЕРЕ (всё в одной строке) 
+        ============================================================ */}
+    <div className="hidden sm:flex justify-between items-center">
+      <div className="flex items-center gap-2">
+        <span className="text-2xl">🛡️</span>
+        <h1 className="text-2xl font-bold tracking-tight">AI Compliance Checker</h1>
+      </div>
+      <div className="flex items-center gap-4">
+        <ThemeToggle />
+        {isAuthenticated ? (
+          <>
+            <span className="text-sm text-blue-100">
+              👤 {user?.full_name || user?.email}
+            </span>
+            <Link
+              href="/history"
+              className="text-sm text-white/80 hover:text-white hover:underline transition"
+            >
+              Мои отчёты
+            </Link>
+            {isAuthenticated && user?.email === 'bernerdasha@yandex.ru' && (
+              <Link
+                href="/admin"
+                className="text-sm text-white/80 hover:text-white hover:underline transition"
+              >
+                ⚙️ Админка
+              </Link>
+            )}
+            <button
+              onClick={handleLogout}
+              className="px-4 py-1.5 bg-white/20 hover:bg-white/30 rounded-lg text-sm font-medium transition"
+            >
+              Выйти
+            </button>
+          </>
+        ) : (
+          <button
+            onClick={() => setIsAuthOpen(true)}
+            className="px-5 py-2 bg-white text-blue-700 rounded-lg font-semibold hover:bg-blue-50 transition shadow-md"
+          >
+            Войти / Регистрация
+          </button>
+        )}
+      </div>
+    </div>
 
-    {/* Нижняя строка: ссылки для авторизованных пользователей */}
-    {isAuthenticated && (
-      <div className="flex flex-wrap items-center justify-end gap-3 mt-3 pt-3 border-t border-white/20">
-        <span className="text-sm text-blue-100">
-          👤 {user?.full_name || user?.email}
-        </span>
-        <Link
-          href="/history"
-          className="text-sm text-white/80 hover:text-white hover:underline transition"
-        >
-          Мои отчёты
-        </Link>
-        {isAuthenticated && user?.email === 'bernerdasha@yandex.ru' && (
+    {/* ============================================================
+        ВИД НА ТЕЛЕФОНЕ (две строки) 
+        ============================================================ */}
+    <div className="sm:hidden">
+      {/* Верхняя строка: логотип + переключатель темы + кнопка входа (если не авторизован) */}
+      <div className="flex justify-between items-center">
+        <div className="flex items-center gap-2">
+          <span className="text-2xl">🛡️</span>
+          <h1 className="text-xl font-bold tracking-tight">AI Compliance Checker</h1>
+        </div>
+        <div className="flex items-center gap-2">
+          <ThemeToggle />
+          {!isAuthenticated && (
+            <button
+              onClick={() => setIsAuthOpen(true)}
+              className="px-3 py-1.5 text-sm bg-white text-blue-700 rounded-lg font-semibold hover:bg-blue-50 transition shadow-md"
+            >
+              Войти
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Нижняя строка: ссылки и кнопка выхода для авторизованных */}
+      {isAuthenticated && (
+        <div className="flex flex-wrap items-center justify-end gap-3 mt-3 pt-3 border-t border-white/20">
+          <span className="text-sm text-blue-100">
+            👤 {user?.full_name || user?.email}
+          </span>
           <Link
-            href="/admin"
+            href="/history"
             className="text-sm text-white/80 hover:text-white hover:underline transition"
           >
-            ⚙️ Админка
+            Мои отчёты
           </Link>
-        )}
-        <button
-          onClick={handleLogout}
-          className="px-3 py-1 text-sm bg-white/20 hover:bg-white/30 rounded-lg font-medium transition"
-        >
-          Выйти
-        </button>
-      </div>
-    )}
+          {isAuthenticated && user?.email === 'bernerdasha@yandex.ru' && (
+            <Link
+              href="/admin"
+              className="text-sm text-white/80 hover:text-white hover:underline transition"
+            >
+              ⚙️ Админка
+            </Link>
+          )}
+          <button
+            onClick={handleLogout}
+            className="px-3 py-1 text-sm bg-white/20 hover:bg-white/30 rounded-lg font-medium transition"
+          >
+            Выйти
+          </button>
+        </div>
+      )}
+    </div>
   </div>
 </header>
 
