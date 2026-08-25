@@ -240,19 +240,67 @@ export default function Home() {
               )}
 
               {result.analysis?.rules && result.analysis.rules.length > 0 && (
-                <div className="space-y-2">
-                  <p className="font-semibold text-gray-700 dark:text-gray-300">📌 Проверка пунктов:</p>
-                  {result.analysis.rules.map((rule: any, index: number) => (
-                    <div
-                      key={index}
-                      className="flex items-center justify-between p-3 bg-white dark:bg-gray-700 rounded-xl border border-gray-200 dark:border-gray-600 shadow-sm"
-                    >
-                      <span className="text-gray-800 dark:text-gray-200 font-medium">{rule.name}</span>
-                      <span className="text-lg font-bold">{rule.status}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
+  <div className="space-y-4">
+    <p className="font-semibold text-gray-700 dark:text-gray-300">📌 Детальный разбор:</p>
+    {result.analysis.rules.map((rule: any, index: number) => (
+      <div
+        key={index}
+        className="p-4 bg-white dark:bg-gray-700 rounded-xl border border-gray-200 dark:border-gray-600 shadow-sm space-y-2"
+      >
+        <div className="flex items-center justify-between">
+          <span className="text-gray-800 dark:text-gray-200 font-medium">{rule.name}</span>
+          <span className="text-lg font-bold">{rule.status}</span>
+        </div>
+
+        {rule.quote && (
+          <div className="bg-yellow-50 dark:bg-yellow-900/20 p-2 rounded border-l-4 border-yellow-400">
+            <p className="text-xs text-gray-500 dark:text-gray-400">📎 Цитата из договора:</p>
+            <p className="text-sm text-gray-800 dark:text-gray-200 italic">«{rule.quote}»</p>
+          </div>
+        )}
+
+        {rule.law && (
+          <div className="bg-blue-50 dark:bg-blue-900/20 p-2 rounded border-l-4 border-blue-400">
+            <p className="text-xs text-gray-500 dark:text-gray-400">⚖️ Статья закона:</p>
+            <p className="text-sm text-gray-800 dark:text-gray-200 font-medium">{rule.law}</p>
+          </div>
+        )}
+
+        {rule.risk && rule.risk !== "Нарушений не обнаружено" && (
+          <div className="bg-red-50 dark:bg-red-900/20 p-2 rounded border-l-4 border-red-400">
+            <p className="text-xs text-gray-500 dark:text-gray-400">⚠️ Риск для бизнеса:</p>
+            <p className="text-sm text-gray-800 dark:text-gray-200">{rule.risk}</p>
+          </div>
+        )}
+
+        {rule.recommendation && (
+          <div className="bg-green-50 dark:bg-green-900/20 p-2 rounded border-l-4 border-green-400">
+            <p className="text-xs text-gray-500 dark:text-gray-400">💡 Рекомендация:</p>
+            <p className="text-sm text-gray-800 dark:text-gray-200">{rule.recommendation}</p>
+          </div>
+        )}
+
+        {rule.formulation && (
+          <div className="bg-purple-50 dark:bg-purple-900/20 p-3 rounded border border-purple-300 dark:border-purple-700">
+            <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">📝 Готовая формулировка для договора:</p>
+            <p className="text-sm text-gray-800 dark:text-gray-200 font-mono bg-white dark:bg-gray-800 p-2 rounded border border-gray-200 dark:border-gray-600">
+              {rule.formulation}
+            </p>
+            <button
+              onClick={() => {
+                navigator.clipboard.writeText(rule.formulation);
+                alert('✅ Формулировка скопирована в буфер обмена!');
+              }}
+              className="mt-2 text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-3 py-1 rounded hover:bg-blue-200 dark:hover:bg-blue-800 transition"
+            >
+              📋 Копировать
+            </button>
+          </div>
+        )}
+      </div>
+    ))}
+  </div>
+)}
 
               {result.analysis?.recommendations && result.analysis.recommendations.length > 0 && (
                 <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 rounded-xl">
