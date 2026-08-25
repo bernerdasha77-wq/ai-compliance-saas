@@ -131,7 +131,7 @@ async def login_user(user_data: UserLogin, db: Session = Depends(get_db)):
 async def analyze_contract_endpoint(
     file: UploadFile = File(...),
     company_name: str = "Test Company",
-    law: str = "152-FZ"
+    law: str = "152-ФЗ",
     db = Depends(get_db),
     token: str = Depends(security)
 ):
