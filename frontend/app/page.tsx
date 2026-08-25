@@ -272,48 +272,85 @@ export default function Home() {
         )}
 
         {result && (
-          <div className="mt-8 bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-200 dark:border-gray-700 shadow-lg animate-fadeIn">
-          <h3 className="text-2xl font-bold text-gray-800 dark:text-white mb-4">📋 Результат анализа</h3>
-            
-            <div className="space-y-4">
-              <div className="flex items-center gap-2">
-                <span className="font-semibold text-gray-700 dark:text-gray-300">Статус:</span>
-                <span className="px-4 py-1 bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300 rounded-full text-sm font-bold">
-                  {result.status || 'Готово'}
-                </span>
-              </div>
+                <div className="mt-8 bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-200 dark:border-gray-700 shadow-lg">
+                  <h3 className="text-2xl font-bold text-gray-800 dark:text-white mb-4">📋 Результат анализа</h3>
 
-              {result.analysis && (
-                <div className="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-xl border border-gray-200 dark:border-gray-600">
-                  <p className="text-gray-700 dark:text-gray-300 font-semibold">Общий статус:</p>
-                  <p className="text-gray-900 dark:text-white text-lg font-bold mt-1">
-                    {result.analysis.overall_status || 'Анализ завершён'}
-                  </p>
-                </div>
-              )}
-              {result.analysis?.full_analysis && (
-                <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-xl border border-gray-200 dark:border-gray-600">
-                  <h4 className="font-semibold text-gray-700 dark:text-gray-300 mb-2">🧠 Глубокий AI-анализ:</h4>
-                  <div className="whitespace-pre-wrap text-sm text-gray-800 dark:text-gray-200 leading-relaxed">
-                    {result.analysis.full_analysis}
-                  </div>
-                </div>
-              )}
-
-              {result.analysis?.rules && (
-                <div className="space-y-2">
-                  <p className="font-semibold text-gray-700 dark:text-gray-300">📌 Проверка пунктов:</p>
-                  {result.analysis.rules.map((rule: any, index: number) => (
-                    <div
-                      key={index}
-                      className="flex items-center justify-between p-3 bg-white dark:bg-gray-700 rounded-xl border border-gray-200 dark:border-gray-600 shadow-sm"
-                    >
-                      <span className="text-gray-800 dark:text-gray-200 font-medium">{rule.name}</span>
-                      <span className="text-lg font-bold">{rule.status}</span>
+                  <div className="space-y-4">
+                    {/* Статус */}
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold text-gray-700 dark:text-gray-300">Статус:</span>
+                      <span className="px-4 py-1 bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300 rounded-full text-sm font-bold">
+                        {result.status || 'Готово'}
+                      </span>
                     </div>
-                  ))}
-                </div>
-              )}
+
+                    {/* Общий статус (DeepSeek) */}
+                    {result.analysis?.overall_status && (
+                      <div className="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-xl border border-gray-200 dark:border-gray-600">
+                        <p className="text-gray-700 dark:text-gray-300 font-semibold">Общий статус:</p>
+                        <p className="text-gray-900 dark:text-white text-lg font-bold mt-1">
+            {result.analysis.overall_status}
+                        </p>
+                      </div>
+                    )}
+
+      {/* Глубокий анализ (DeepSeek) */}
+      {result.analysis?.full_analysis && (
+        <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-xl border border-gray-200 dark:border-gray-600">
+          <h4 className="font-semibold text-gray-700 dark:text-gray-300 mb-2">🧠 Глубокий AI-анализ:</h4>
+          <div className="whitespace-pre-wrap text-sm text-gray-800 dark:text-gray-200 leading-relaxed">
+            {result.analysis.full_analysis}
+          </div>
+        </div>
+      )}
+
+      {/* Проверка пунктов (локальный AI) */}
+      {result.analysis?.rules && result.analysis.rules.length > 0 && (
+        <div className="space-y-2">
+          <p className="font-semibold text-gray-700 dark:text-gray-300">📌 Проверка пунктов:</p>
+          {result.analysis.rules.map((rule: any, index: number) => (
+            <div
+              key={index}
+              className="flex items-center justify-between p-3 bg-white dark:bg-gray-700 rounded-xl border border-gray-200 dark:border-gray-600 shadow-sm"
+            >
+              <span className="text-gray-800 dark:text-gray-200 font-medium">{rule.name}</span>
+              <span className="text-lg font-bold">{rule.status}</span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Рекомендации */}
+      {result.analysis?.recommendations && result.analysis.recommendations.length > 0 && (
+        <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 rounded-xl">
+          <p className="font-semibold text-gray-700 dark:text-gray-300 mb-2">💡 Рекомендации:</p>
+          <ul className="list-disc pl-5 space-y-1">
+            {result.analysis.recommendations.map((rec: string, index: number) => (
+              <li key={index} className="text-gray-700 dark:text-gray-300 text-sm">{rec}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {/* Чек-лист */}
+      {result.checklist && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-4">
+          {Object.entries(result.checklist).map(([key, value]) => (
+            <div
+              key={key}
+              className="flex items-center justify-between p-3 bg-white dark:bg-gray-700 rounded-xl border border-gray-200 dark:border-gray-600 shadow-sm"
+            >
+              <span className="text-gray-700 dark:text-gray-300 font-medium">{key}</span>
+              <span className="text-xl font-bold">
+                {value ? '✅' : '❌'}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  </div>
+)}
 
               {result.analysis?.recommendations?.length > 0 && (
                 <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 rounded-xl">
