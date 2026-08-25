@@ -39,44 +39,50 @@ results = []
 checklist = {}
 
 for name, keywords in checks.items():
-found = any(kw in text_lower for kw in keywords)
+    found = any(kw in text_lower for kw in keywords)
 status = "🟢 Соответствует" if found else "🔴 Нарушено"
 results.append({"name": name, "status": status})
-checklist[name] = found
+checklist = {}
 
-recommendations = []
-if not checklist["Утечка данных (152-ФЗ / GDPR)"]:
-recommendations.append("Добавьте раздел о защите персональных данных в соответствии с 152-ФЗ")
-if not checklist["Контроль доступа"]:
-recommendations.append("Пропишите процедуру управления доступом и ролями")
-if not checklist["Ответственность сторон"]:
-recommendations.append("Укажите ответственность за утечку и штрафы")
-if not checklist["Шифрование данных (AES-256 / TLS)"]:
-recommendations.append("Обязательно укажите использование шифрования AES-256 и TLS")
-if not checklist["Уведомление регулятора (24 часа)"]:
-recommendations.append("Добавьте пункт об уведомлении регулятора в течение 24 часов")
+    for name, keywords in checks.items():
+        found = any(kw in text_lower for kw in keywords)
+        status = "🟢 Соответствует" if found else "🔴 Нарушено"
+        results.append({"name": name, "status": status})
+        checklist[name] = found
 
-total = len(checklist)
-passed = sum(1 for v in checklist.values() if v)
+    recommendations = []
+    if not checklist["Утечка данных (152-ФЗ / GDPR)"]:
+        recommendations.append("Добавьте раздел о защите персональных данных в соответствии с 152-ФЗ")
+    if not checklist["Контроль доступа"]:
+        recommendations.append("Пропишите процедуру управления доступом и ролями")
+    if not checklist["Ответственность сторон"]:
+        recommendations.append("Укажите ответственность за утечку и штрафы")
+    if not checklist["Шифрование данных (AES-256 / TLS)"]:
+        recommendations.append("Обязательно укажите использование шифрования AES-256 и TLS")
+    if not checklist["Уведомление регулятора (24 часа)"]:
+        recommendations.append("Добавьте пункт об уведомлении регулятора в течение 24 часов")
 
-if passed == total:
-overall = "✅ Документ полностью соответствует требованиям"
-elif passed >= total - 1:
-overall = "🟡 Требует незначительной доработки"
-else:
-overall = "🔴 Требует серьёзной доработки"
+    total = len(checklist)
+    passed = sum(1 for v in checklist.values() if v)
 
-return {
-"overall_status": overall,
-"full_analysis": f"Найдено {passed} из {total} пунктов",
-"rules": results,
-"recommendations": recommendations if recommendations else ["Все пункты соблюдены"],
-"summary": {
-"total": total,
-"passed": passed,
-"failed": total - passed
-}
-}
+    if passed == total:
+        overall = "✅ Документ полностью соответствует требованиям"
+    elif passed >= total - 1:
+        overall = "🟡 Требует незначительной доработки"
+    else:
+        overall = "🔴 Требует серьёзной доработки"
+
+    return {
+        "overall_status": overall,
+        "full_analysis": f"Найдено {passed} из {total} пунктов",
+        "rules": results,
+        "recommendations": recommendations if recommendations else ["Все пункты соблюдены"],
+        "summary": {
+            "total": total,
+            "passed": passed,
+            "failed": total - passed
+        }
+    }
 
 # ============================================
 # DEEPSEEK AI (ПЛАТНЫЙ)
