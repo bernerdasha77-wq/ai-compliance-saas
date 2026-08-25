@@ -11,7 +11,7 @@ base_url="https://api.deepseek.com/v1"
 # ЛОКАЛЬНЫЙ AI (БЕСПЛАТНЫЙ)
 # ============================================
 async def local_analyze(text: str) -> dict:
-"""Базовый анализ без использования API (бесплатный)"""
+    """Базовый анализ без использования API (бесплатный)"""
 text_lower = text.lower()
 
 checks = {
@@ -82,7 +82,7 @@ return {
 # DEEPSEEK AI (ПЛАТНЫЙ)
 # ============================================
 async def deepseek_analyze(text: str, law: str = "152-ФЗ") -> dict:
-"""Глубокий анализ через DeepSeek API (платный)"""
+    """Глубокий анализ через DeepSeek API (платный)"""
 
 # Определяем систему в зависимости от законодательства
 law_prompts = {
@@ -146,8 +146,8 @@ return {
 # ГЛАВНАЯ ФУНКЦИЯ АНАЛИЗА
 # ============================================
 async def analyze_contract(text: str, is_pro: bool = False, law: str = "152-ФЗ") -> dict:
-"""Выбирает тип анализа в зависимости от статуса подписки"""
-if is_pro:
-return await deepseek_analyze(text, law)
-else:
-return await local_analyze(text)
+    """Выбирает тип анализа в зависимости от статуса подписки"""
+    if is_pro:
+        return await deepseek_analyze(text, law)
+    else:
+        return await local_analyze(text)
