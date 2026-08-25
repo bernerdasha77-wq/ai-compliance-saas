@@ -70,64 +70,46 @@ async def deepseek_analyze(text: str, law: str = "152-ФЗ") -> dict:
         "HIPAA": "Проверь договор на соответствие HIPAA (медицинские данные). Укажи конкретные статьи.",
         "ISO-27001": "Проверь договор на соответствие ISO 27001 (информационная безопасность)."
     }
+    
     law_prompt = law_prompts.get(law, law_prompts["152-ФЗ"])
+
     prompt = f"""
     Ты — юридический AI-эксперт по кибербезопасности и комплаенсу.
+    
     {law_prompt}
+    
     Договор:
     {text[:8000]}
-    Выдай ОТВЕТ ТОЛЬКО В ФОРМАТЕ JSON (без дополнительного текста, без кавычек вокруг JSON, только чистый JSON).
-    Формат ответа:
-    {{
-        "status": "🟢 Соответствует" или "🟡 Требует доработки" или "🔴 Нарушено",
-        "violations": [
-            {{
-                "description": "Описание нарушения",
-                "law": "152-ФЗ, статья ...",
-                "risk": "Высокий / Средний / Низкий"
-            }}
-        ],
-        "recommendations": [
-            "Рекомендация 1",
-            "Рекомендация 2"
-        ]
-    }}
-    Будь максимально конкретным и полезным. Пиши на русском языке.
+    
+    Выдай развёрнутый анализ в свободной форме, но чётко структурируй:
+    1. Статус (соответствует / требует доработки / нарушено)
+    2. Нарушения и замечания (по пунктам)
+    3. Рекомендации (как исправить)
+    
+    Пиши на русском языке, без лишней воды.
     """
+
     try:
         response = deepseek_client.chat.completions.create(
             model="deepseek-chat",
             messages=[
-                {"role": "system", "content": "Ты — юридический AI-эксперт. Отвечай только в формате JSON."},
+                {"role": "system", "content": "Ты — юридический AI-эксперт по кибербезопасности."},
                 {"role": "user", "content": prompt}
             ],
             temperature=0.3,
             max_tokens=4000,
         )
-        raw = response.choices[0].message.content
-        try:
-            data = json.loads(raw)
-        except json.JSONDecodeError:
-            return {
-                "overall_status": "⚠️ Ошибка формата ответа",
-                "full_analysis": raw,
-                "rules": [],
-                "recommendations": ["Попробуйте ещё раз"],
-                "summary": {"total": 0, "passed": 0, "failed": 0}
-            }
-        rules = []
-        for v in data.get("violations", []):
-            rules.append({
-                "name": v.get("description", "Нарушение"),
-                "status": f"🔴 {v.get('risk', 'Риск')}"
-            })
+
+        result = response.choices[0].message.content
+
         return {
-            "overall_status": data.get("status", "❌ Статус не определён"),
-            "full_analysis": "\n".join(data.get("recommendations", [])),
-            "rules": rules,
-            "recommendations": data.get("recommendations", []),
-            "summary": {"total": len(rules), "passed": 0, "failed": len(rules)}
+            "overall_status": "✅ Анализ завершён (DeepSeek)",
+            "full_analysis": result,
+            "rules": [],
+            "recommendations": ["Подробный анализ в тексте выше"],
+            "summary": {"total": 0, "passed": 0, "failed": 0}
         }
+
     except Exception as e:
         return {
             "overall_status": "❌ Ошибка DeepSeek",
