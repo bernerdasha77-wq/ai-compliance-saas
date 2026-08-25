@@ -1,4 +1,4 @@
-'use client';
+''use client';
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
@@ -126,7 +126,7 @@ export default function Home() {
                 </Link>
                 {isAuthenticated && user?.email === 'bernerdasha@yandex.ru' && (
                   <Link
-                    href="/admin"
+                  href="/admin"
                     className="text-sm text-white/80 hover:text-white hover:underline transition"
                   >
                     ⚙️ Админка
@@ -155,10 +155,10 @@ export default function Home() {
       <div className="max-w-4xl mx-auto px-4 py-10">
         <div className="text-center mb-10">
           <h2 className="text-4xl font-bold text-gray-800 dark:text-white mb-3">
-            Проверьте договор на <span className="text-blue-600 dark:text-blue-400">безопасность</span>
+            Оцените риски вашего договора с <span className="text-blue-600 dark:text-blue-400">контрагентом</span>
           </h2>
           <p className="text-gray-600 dark:text-gray-300 text-lg max-w-2xl mx-auto">
-            Загрузите файл и получите AI-анализ по 5 ключевым пунктам кибербезопасности
+            AI найдёт утечки данных, штрафы и дыры в ответственности
           </p>
         </div>
 
