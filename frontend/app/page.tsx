@@ -239,6 +239,14 @@ export default function Home() {
                   </p>
                 </div>
               )}
+              {result.analysis?.full_analysis && (
+                <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-xl border border-gray-200 dark:border-gray-600">
+                  <h4 className="font-semibold text-gray-700 dark:text-gray-300 mb-2">🧠 Глубокий AI-анализ:</h4>
+                  <div className="whitespace-pre-wrap text-sm text-gray-800 dark:text-gray-200 leading-relaxed">
+                    {result.analysis.full_analysis}
+                  </div>
+                </div>
+              )}
 
               {result.analysis?.rules && (
                 <div className="space-y-2">
