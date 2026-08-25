@@ -164,7 +164,7 @@ className="inline-block mb-6 text-blue-600 dark:text-blue-400 hover:underline te
 <div><span className="font-medium">Телефон:</span> +7 (939) 707-71-14</div>
 <div><span className="font-medium">Email:</span> aicompl26@gmail.com</div>
 <div className="sm:col-span-2"><span className="font-medium">Статус:</span> Самозанятое лицо (Налог на профессиональный доход)</div>
-<div className="sm:col-span-2"><span className="font-medium">Адрес:</span> [445032, Самарская обл., г. Тольятти,  б-р Кулибина 9 - 139]</div>
+<div className="sm:col-span-2"><span className="font-medium">Адрес:</span> 445032, Самарская обл., г. Тольятти,  б-р Кулибина 9 - 139</div>
 </div>
 </section>
 

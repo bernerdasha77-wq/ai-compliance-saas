@@ -113,6 +113,12 @@ export default function Home() {
           </div>
           <div className="flex items-center gap-4">
             <ThemeToggle />
+            <Link
+              href="/pricing"
+              className="text-sm text-white/80 hover:text-white hover:underline transition"
+            >
+              Тарифы
+            </Link>
             {isAuthenticated ? (
               <>
                 <span className="text-sm text-blue-100">
