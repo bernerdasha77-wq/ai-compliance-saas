@@ -144,7 +144,7 @@ async def analyze_contract_endpoint(
     
     try:
         text = await extract_text_from_file(file)
-        analysis = await analyze_contract(text)
+        aanalysis = await analyze_contract(text, is_pro=is_pro, law=law)
         
         checklist = {}
         if analysis.get('rules'):
