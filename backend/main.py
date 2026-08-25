@@ -137,26 +137,30 @@ async def analyze_contract_endpoint(
 ):
     user = await get_user_from_token(token, db)
     if not user:
-        raise HTTPException(status_code=401, detail="Неверный или просроченный токен")
-    
+        raise HTTPException(status_code=401, detail="Неверный токен")
+
     if not file.filename.endswith(('.pdf', '.docx')):
         raise HTTPException(status_code=400, detail="Поддерживаются только PDF и DOCX")
-    
+
     try:
         text = await extract_text_from_file(file)
-        aanalysis = await analyze_contract(text, is_pro=is_pro, law=law)
         
+        # Временная заглушка: пока все пользователи бесплатные
+        is_pro = False
+        
+        analysis = await analyze_contract(text, is_pro=is_pro, law=law)
+
         checklist = {}
         if analysis.get('rules'):
             for rule in analysis['rules']:
                 name = rule.get('name', '')
                 status_text = rule.get('status', '')
                 checklist[name] = '🟢' in status_text or 'Соответствует' in status_text
-        
+
         total = len(checklist) if checklist else 1
         passed = sum(1 for v in checklist.values() if v)
         risk_ratio = passed / total if total > 0 else 0
-        
+
         if risk_ratio == 1.0:
             risk_level = "low"
         elif risk_ratio >= 0.6:
