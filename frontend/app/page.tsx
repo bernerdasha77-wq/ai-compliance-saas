@@ -222,13 +222,21 @@ export default function Home() {
               </div>
 
               {result.analysis?.overall_status && (
-                <div className="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-xl border border-gray-200 dark:border-gray-600">
-                  <p className="text-gray-700 dark:text-gray-300 font-semibold">Общий статус:</p>
-                  <p className="text-gray-900 dark:text-white text-lg font-bold mt-1">
-                    {result.analysis.overall_status}
-                  </p>
-                </div>
-              )}
+  <div className="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-xl border border-gray-200 dark:border-gray-600">
+    <p className="text-gray-700 dark:text-gray-300 font-semibold">Общий статус:</p>
+    <div className="flex items-center gap-2 mt-1">
+      <span className={`inline-block w-3 h-3 rounded-full ${
+        result.analysis.overall_status.includes('низкий') ? 'bg-green-500' :
+        result.analysis.overall_status.includes('средний') ? 'bg-yellow-500' :
+        result.analysis.overall_status.includes('высокий') ? 'bg-red-500' :
+        'bg-gray-400'
+      }`}></span>
+      <p className="text-gray-900 dark:text-white text-lg font-bold">
+        {result.analysis.overall_status}
+      </p>
+    </div>
+  </div>
+)}
 
               {result.analysis?.full_analysis && (
                 <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-xl border border-gray-200 dark:border-gray-600">
