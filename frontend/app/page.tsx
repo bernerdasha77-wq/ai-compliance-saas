@@ -48,62 +48,67 @@ export default function Home() {
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  e.preventDefault();
 
-    if (!file) {
-      setError('Пожалуйста, выберите файл');
-      return;
+  console.log('🔍 handleSubmit вызван');
+  console.log('📄 Выбранный файл:', file);
+
+  if (!file) {
+    setError('Пожалуйста, выберите файл');
+    return;
+  }
+
+  const token = localStorage.getItem('access_token');
+  console.log('🔑 Токен:', token ? 'есть' : 'нет');
+
+  if (!token) {
+    setIsAuthOpen(true);
+    setError('Пожалуйста, войдите в систему');
+    return;
+  }
+
+  setLoading(true);
+  setError(null);
+
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('company_name', 'Тестовая компания');
+
+  const docType = (document.getElementById('docType') as HTMLSelectElement)?.value || 'contract';
+  console.log('📋 Тип документа (docType):', docType);
+  formData.append('doc_type', docType);
+
+  try {
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://ai-compliance-saas-6nz5.onrender.com';
+    console.log('🌐 Отправка запроса на:', `${apiUrl}/api/analyze`);
+
+    const response = await fetch(`${apiUrl}/api/analyze`, {
+      method: 'POST',
+      headers: {
+        Authorization: Bearer ${token},
+      },
+      body: formData,
+    });
+
+    console.log('📦 Статус ответа:', response.status);
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.log('❌ Ошибка от сервера:', errorData);
+      throw new Error(errorData.detail || 'Ошибка при анализе');
     }
 
-    const token = localStorage.getItem('access_token');
-    if (!token) {
-      setIsAuthOpen(true);
-      setError('Пожалуйста, войдите в систему');
-      return;
-    }
-
-    setLoading(true);
-    setError(null);
-
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('company_name', 'Тестовая компания');
-    const docType = (document.getElementById('docType') as HTMLSelectElement)?.value || 'contract';
-    formData.append('doc_type', docType);
-
-    try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://ai-compliance-saas-6nz5.onrender.com';
-      const response = await fetch(`${apiUrl}/api/analyze`, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-        body: formData,
-      });
-
-      if (response.status === 401) {
-        localStorage.removeItem('access_token');
-        localStorage.removeItem('user');
-        setIsAuthenticated(false);
-        setError('Сессия истекла. Войдите снова.');
-        setIsAuthOpen(true);
-        return;
-      }
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || 'Ошибка при анализе');
-      }
-
-      const data = await response.json();
-      setResult(data);
-    } catch (err: any) {
-      setError(err.message || 'Произошла ошибка');
-    } finally {
-      setLoading(false);
-    }
-  };
-
+    const data = await response.json();
+    console.log('✅ Данные получены:', data);
+    console.log('📋 analysis.rules:', data.analysis?.rules);
+    setResult(data);
+  } catch (err: any) {
+    console.error('🔥 Ошибка:', err);
+    setError(err.message || 'Произошла ошибка');
+  } finally {
+    setLoading(false);
+  }
+};
   return (
     <main className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 dark:from-gray-900 dark:to-gray-800">
       {/* Шапка */}
