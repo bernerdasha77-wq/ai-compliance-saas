@@ -20,6 +20,7 @@ async def analyze_contract(
     law: str = "152-ФЗ",
     doc_type: str = "contract"
 ) -> dict:
+    print(f"🔍 Получен doc_type в ai_service: {doc_type}")  # ← ДОБАВИЛИ
     analyzer = ANALYZERS.get(doc_type, ANALYZERS["contract"])
     if is_pro:
         return await analyzer["deepseek"](text, law)
