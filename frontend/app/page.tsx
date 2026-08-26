@@ -282,7 +282,7 @@ export default function Home() {
 
         {rule.quote && (
           <div className="bg-yellow-50 dark:bg-yellow-900/20 p-2 rounded border-l-4 border-yellow-400">
-            <p className="text-xs text-gray-500 dark:text-gray-400">📎 Цитата из договора:</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">📎 Цитата из документа:</p>
             <p className="text-sm text-gray-800 dark:text-gray-200 italic">«{rule.quote}»</p>
           </div>
         )}
@@ -310,7 +310,7 @@ export default function Home() {
 
         {rule.formulation && (
           <div className="bg-purple-50 dark:bg-purple-900/20 p-3 rounded border border-purple-300 dark:border-purple-700">
-            <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">📝 Готовая формулировка для договора:</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">📝 Готовая формулировка для документа:</p>
             <p className="text-sm text-gray-800 dark:text-gray-200 font-mono bg-white dark:bg-gray-800 p-2 rounded border border-gray-200 dark:border-gray-600">
               {rule.formulation}
             </p>
