@@ -5,6 +5,27 @@ import Link from 'next/link';
 import AuthModal from './components/AuthModal';
 import ThemeToggle from './components/ThemeToggle';
 
+const docTypes = [
+  {
+    id: 'contract',
+    title: '📄 Договор с контрагентом',
+    description: 'Проверим утечки данных, контроль доступа, шифрование и ответственность за инциденты',
+    icon: '📄'
+  },
+  {
+    id: 'eula',
+    title: '📱 EULA / Terms',
+    description: 'Оценим лицензионные ограничения, авторские права и условия использования',
+    icon: '📱'
+  },
+  {
+    id: 'privacy',
+    title: '🔒 Политика конфиденциальности',
+    description: 'Проверим сбор данных, согласия пользователей и передачу информации третьим лицам',
+    icon: '🔒'
+  }
+];
+
 export default function Home() {
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
@@ -13,6 +34,7 @@ export default function Home() {
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState<any>(null);
+  const [docType, setDocType] = useState('contract');
 
   useEffect(() => {
     const token = localStorage.getItem('access_token');
@@ -48,67 +70,62 @@ export default function Home() {
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
+    e.preventDefault();
 
-  console.log('🔍 handleSubmit вызван');
-  console.log('📄 Выбранный файл:', file);
-
-  if (!file) {
-    setError('Пожалуйста, выберите файл');
-    return;
-  }
-
-  const token = localStorage.getItem('access_token');
-  console.log('🔑 Токен:', token ? 'есть' : 'нет');
-
-  if (!token) {
-    setIsAuthOpen(true);
-    setError('Пожалуйста, войдите в систему');
-    return;
-  }
-
-  setLoading(true);
-  setError(null);
-
-  const formData = new FormData();
-  formData.append('file', file);
-  formData.append('company_name', 'Тестовая компания');
-
-  const docType = (document.getElementById('docType') as HTMLSelectElement)?.value || 'contract';
-  console.log('📋 Тип документа (docType):', docType);
-
-  try {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://ai-compliance-saas-6nz5.onrender.com';
-    console.log('🌐 Отправка запроса на:', `${apiUrl}/api/analyze`);
-
-    const response = await fetch(
-  `${apiUrl}/api/analyze?company_name=Тестовая компания&law=152-ФЗ&doc_type=${docType}`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-      body: formData,
-    });
-
-    console.log('📦 Статус ответа:', response.status);
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      console.log('❌ Ошибка от сервера:', errorData);
-      throw new Error(errorData.detail || 'Ошибка при анализе');
+    if (!file) {
+      setError('Пожалуйста, выберите файл');
+      return;
     }
 
-    const data = await response.json();
-    console.log('✅ Данные получены:', data);
-    console.log('📋 analysis.rules:', data.analysis?.rules);
-    setResult(data);
-  } catch (err: any) {
-    console.error('🔥 Ошибка:', err);
-    setError(err.message || 'Произошла ошибка');
-  } finally {
-    setLoading(false);
-  }
-};
+    const token = localStorage.getItem('access_token');
+    if (!token) {
+      setIsAuthOpen(true);
+      setError('Пожалуйста, войдите в систему');
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('company_name', 'Тестовая компания');
+    formData.append('doc_type', docType);
+
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://ai-compliance-saas-6nz5.onrender.com';
+      const response = await fetch(`${apiUrl}/api/analyze`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
+      });
+
+      if (response.status === 401) {
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('user');
+        setIsAuthenticated(false);
+        setError('Сессия истекла. Войдите снова.');
+        setIsAuthOpen(true);
+        return;
+      }
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || 'Ошибка при анализе');
+      }
+
+      const data = await response.json();
+      console.log('📦 Данные получены:', data);
+      setResult(data);
+    } catch (err: any) {
+      setError(err.message || 'Произошла ошибка');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <main className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 dark:from-gray-900 dark:to-gray-800">
       {/* Шапка */}
@@ -133,7 +150,7 @@ export default function Home() {
                 </Link>
                 {isAuthenticated && user?.email === 'bernerdasha@yandex.ru' && (
                   <Link
-                  href="/admin"
+                    href="/admin"
                     className="text-sm text-white/80 hover:text-white hover:underline transition"
                   >
                     ⚙️ Админка
@@ -162,27 +179,56 @@ export default function Home() {
       <div className="max-w-4xl mx-auto px-4 py-10">
         <div className="text-center mb-10">
           <h2 className="text-4xl font-bold text-gray-800 dark:text-white mb-3">
-            Оцените риски вашего договора с <span className="text-blue-600 dark:text-blue-400">контрагентом</span>
+            Проверьте документ на соответствие <span className="text-blue-600 dark:text-blue-400">законам и стандартам</span>
           </h2>
           <p className="text-gray-600 dark:text-gray-300 text-lg max-w-2xl mx-auto">
-            AI найдёт утечки данных, штрафы и дыры в ответственности
+            AI оценит риски, найдёт нарушения и предложит готовые формулировки
           </p>
         </div>
 
+        {/* Карточки выбора типа документа */}
+        <div className="mb-6">
+          <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+            Выберите тип документа
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            {docTypes.map((type) => (
+              <button
+                key={type.id}
+                onClick={() => setDocType(type.id)}
+                className={`p-4 rounded-xl border-2 text-left transition ${
+                  docType === type.id
+                    ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 shadow-md'
+                    : 'border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600'
+                }`}
+              >
+                <div className="text-2xl mb-1">{type.icon}</div>
+                <div className="font-semibold text-gray-800 dark:text-white text-sm">
+                  {type.title}
+                </div>
+                <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  {type.description}
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Динамическое описание выбранного типа */}
+        {docType && (
+          <div className="text-center mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-200 dark:border-blue-800">
+            <p className="text-sm text-gray-700 dark:text-gray-300">
+              <span className="font-medium">Вы выбрали:</span>{' '}
+              {docTypes.find(t => t.id === docType)?.title}
+            </p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              {docTypes.find(t => t.id === docType)?.description}
+            </p>
+          </div>
+        )}
+
+        {/* Форма загрузки файла */}
         <form onSubmit={handleSubmit} className="space-y-6">
-        <div className="mb-4">
-  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-    Тип документа
-  </label>
-  <select
-    id="docType"
-    className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-    defaultValue="contract"
-  >
-    <option value="contract">📄 Договор с контрагентом</option>
-    <option value="eula">📱 Лицензионное соглашение (EULA)</option>
-  </select>
-</div>
           <div className="border-3 border-dashed border-blue-300 dark:border-blue-600 rounded-2xl p-10 text-center hover:border-blue-500 dark:hover:border-blue-400 transition bg-white/70 dark:bg-gray-800/70 backdrop-blur-sm shadow-sm hover:shadow-md">
             <input
               type="file"
@@ -219,7 +265,7 @@ export default function Home() {
                 Анализирую...
               </span>
             ) : (
-              '🔍 Проверить договор'
+              '🔍 Проверить документ'
             )}
           </button>
         </form>
@@ -233,7 +279,9 @@ export default function Home() {
         {result && (
           <div className="mt-8 bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-200 dark:border-gray-700 shadow-lg">
             <h3 className="text-2xl font-bold text-gray-800 dark:text-white mb-4">📋 Результат анализа</h3>
+
             <div className="space-y-4">
+              {/* Статус */}
               <div className="flex items-center gap-2">
                 <span className="font-semibold text-gray-700 dark:text-gray-300">Статус:</span>
                 <span className="px-4 py-1 bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300 rounded-full text-sm font-bold">
@@ -241,119 +289,97 @@ export default function Home() {
                 </span>
               </div>
 
+              {/* Общий статус (с цветным кружком) */}
               {result.analysis?.overall_status && (
-  <div className="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-xl border border-gray-200 dark:border-gray-600">
-    <p className="text-gray-700 dark:text-gray-300 font-semibold">Общий статус:</p>
-    <div className="flex items-center gap-2 mt-1">
-      <span className={`inline-block w-3 h-3 rounded-full ${
-        result.analysis.overall_status.includes('низкий') ? 'bg-green-500' :
-        result.analysis.overall_status.includes('средний') ? 'bg-yellow-500' :
-        result.analysis.overall_status.includes('высокий') ? 'bg-red-500' :
-        'bg-gray-400'
-      }`}></span>
-      <p className="text-gray-900 dark:text-white text-lg font-bold">
-        {result.analysis.overall_status}
-      </p>
-    </div>
-  </div>
-)}
-
-              {result.analysis?.full_analysis && (
-                <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-xl border border-gray-200 dark:border-gray-600">
-                  <h4 className="font-semibold text-gray-700 dark:text-gray-300 mb-2">🧠 Глубокий AI-анализ:</h4>
-                  <div className="whitespace-pre-wrap text-sm text-gray-800 dark:text-gray-200 leading-relaxed">
-                    {result.analysis.full_analysis}
+                <div className="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-xl border border-gray-200 dark:border-gray-600">
+                  <p className="text-gray-700 dark:text-gray-300 font-semibold">Общий статус:</p>
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className={`inline-block w-3 h-3 rounded-full ${
+                      result.analysis.overall_status.includes('низкий') ? 'bg-green-500' :
+                      result.analysis.overall_status.includes('средний') ? 'bg-yellow-500' :
+                      result.analysis.overall_status.includes('высокий') ? 'bg-red-500' :
+                      'bg-gray-400'
+                    }`}></span>
+                    <p className="text-gray-900 dark:text-white text-lg font-bold">
+                      {result.analysis.overall_status}
+                    </p>
                   </div>
                 </div>
               )}
 
+              {/* Детальный разбор (правила с цитатами, статьями, формулировками) */}
               {result.analysis?.rules && result.analysis.rules.length > 0 && (
-  <div className="space-y-4">
-    <p className="font-semibold text-gray-700 dark:text-gray-300">📌 Детальный разбор:</p>
-    {result.analysis.rules.map((rule: any, index: number) => (
-      <div
-        key={index}
-        className="p-4 bg-white dark:bg-gray-700 rounded-xl border border-gray-200 dark:border-gray-600 shadow-sm space-y-2"
-      >
-        <div className="flex items-center justify-between">
-          <span className="text-gray-800 dark:text-gray-200 font-medium">{rule.name}</span>
-          <span className="text-lg font-bold">{rule.status}</span>
-        </div>
+                <div className="space-y-4">
+                  <p className="font-semibold text-gray-700 dark:text-gray-300">📌 Детальный разбор:</p>
+                  {result.analysis.rules.map((rule: any, index: number) => (
+                    <div
+                      key={index}
+                      className="p-4 bg-white dark:bg-gray-700 rounded-xl border border-gray-200 dark:border-gray-600 shadow-sm space-y-2"
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="text-gray-800 dark:text-gray-200 font-medium">{rule.name}</span>
+                        <span className="text-lg font-bold">{rule.status}</span>
+                      </div>
 
-        {rule.quote && (
-          <div className="bg-yellow-50 dark:bg-yellow-900/20 p-2 rounded border-l-4 border-yellow-400">
-            <p className="text-xs text-gray-500 dark:text-gray-400">📎 Цитата из документа:</p>
-            <p className="text-sm text-gray-800 dark:text-gray-200 italic">«{rule.quote}»</p>
-          </div>
-        )}
+                      {rule.quote && (
+                        <div className="bg-yellow-50 dark:bg-yellow-900/20 p-2 rounded border-l-4 border-yellow-400">
+                          <p className="text-xs text-gray-500 dark:text-gray-400">📎 Цитата из документа:</p>
+                          <p className="text-sm text-gray-800 dark:text-gray-200 italic">«{rule.quote}»</p>
+                        </div>
+                      )}
 
-        {rule.law && (
-          <div className="bg-blue-50 dark:bg-blue-900/20 p-2 rounded border-l-4 border-blue-400">
-            <p className="text-xs text-gray-500 dark:text-gray-400">⚖️ Статья закона:</p>
-            <p className="text-sm text-gray-800 dark:text-gray-200 font-medium">{rule.law}</p>
-          </div>
-        )}
+                      {rule.law && (
+                        <div className="bg-blue-50 dark:bg-blue-900/20 p-2 rounded border-l-4 border-blue-400">
+                          <p className="text-xs text-gray-500 dark:text-gray-400">⚖️ Статья закона:</p>
+                          <p className="text-sm text-gray-800 dark:text-gray-200 font-medium">{rule.law}</p>
+                        </div>
+                      )}
 
-        {rule.risk && rule.risk !== "Нарушений не обнаружено" && (
-          <div className="bg-red-50 dark:bg-red-900/20 p-2 rounded border-l-4 border-red-400">
-            <p className="text-xs text-gray-500 dark:text-gray-400">⚠️ Риск для бизнеса:</p>
-            <p className="text-sm text-gray-800 dark:text-gray-200">{rule.risk}</p>
-          </div>
-        )}
+                      {rule.risk && rule.risk !== "Нарушений не обнаружено" && (
+                        <div className="bg-red-50 dark:bg-red-900/20 p-2 rounded border-l-4 border-red-400">
+                          <p className="text-xs text-gray-500 dark:text-gray-400">⚠️ Риск для бизнеса:</p>
+                          <p className="text-sm text-gray-800 dark:text-gray-200">{rule.risk}</p>
+                        </div>
+                      )}
 
-        {rule.recommendation && (
-          <div className="bg-green-50 dark:bg-green-900/20 p-2 rounded border-l-4 border-green-400">
-            <p className="text-xs text-gray-500 dark:text-gray-400">💡 Рекомендация:</p>
-            <p className="text-sm text-gray-800 dark:text-gray-200">{rule.recommendation}</p>
-          </div>
-        )}
+                      {rule.recommendation && (
+                        <div className="bg-green-50 dark:bg-green-900/20 p-2 rounded border-l-4 border-green-400">
+                          <p className="text-xs text-gray-500 dark:text-gray-400">💡 Рекомендация:</p>
+                          <p className="text-sm text-gray-800 dark:text-gray-200">{rule.recommendation}</p>
+                        </div>
+                      )}
 
-        {rule.formulation && (
-          <div className="bg-purple-50 dark:bg-purple-900/20 p-3 rounded border border-purple-300 dark:border-purple-700">
-            <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">📝 Готовая формулировка для документа:</p>
-            <p className="text-sm text-gray-800 dark:text-gray-200 font-mono bg-white dark:bg-gray-800 p-2 rounded border border-gray-200 dark:border-gray-600">
-              {rule.formulation}
-            </p>
-            <button
-              onClick={() => {
-                navigator.clipboard.writeText(rule.formulation);
-                alert('✅ Формулировка скопирована в буфер обмена!');
-              }}
-              className="mt-2 text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-3 py-1 rounded hover:bg-blue-200 dark:hover:bg-blue-800 transition"
-            >
-              📋 Копировать
-            </button>
-          </div>
-        )}
-      </div>
-    ))}
-  </div>
-)}
+                      {rule.formulation && (
+                        <div className="bg-purple-50 dark:bg-purple-900/20 p-3 rounded border border-purple-300 dark:border-purple-700">
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">📝 Готовая формулировка для документа:</p>
+                          <p className="text-sm text-gray-800 dark:text-gray-200 font-mono bg-white dark:bg-gray-800 p-2 rounded border border-gray-200 dark:border-gray-600">
+                            {rule.formulation}
+                          </p>
+                          <button
+                            onClick={() => {
+                              navigator.clipboard.writeText(rule.formulation);
+                              alert('✅ Формулировка скопирована в буфер обмена!');
+                            }}
+                            className="mt-2 text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-3 py-1 rounded hover:bg-blue-200 dark:hover:bg-blue-800 transition"
+                          >
+                            📋 Копировать
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
 
+              {/* Рекомендации (чек-лист действий) */}
               {result.analysis?.recommendations && result.analysis.recommendations.length > 0 && (
                 <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 rounded-xl">
-                  <p className="font-semibold text-gray-700 dark:text-gray-300 mb-2">💡 Рекомендации:</p>
+                  <p className="font-semibold text-gray-700 dark:text-gray-300 mb-2">💡 Чек-лист действий:</p>
                   <ul className="list-disc pl-5 space-y-1">
                     {result.analysis.recommendations.map((rec: string, index: number) => (
                       <li key={index} className="text-gray-700 dark:text-gray-300 text-sm">{rec}</li>
                     ))}
                   </ul>
-                </div>
-              )}
-
-              {result.checklist && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-4">
-                  {Object.entries(result.checklist).map(([key, value]) => (
-                    <div
-                      key={key}
-                      className="flex items-center justify-between p-3 bg-white dark:bg-gray-700 rounded-xl border border-gray-200 dark:border-gray-600 shadow-sm"
-                    >
-                      <span className="text-gray-700 dark:text-gray-300 font-medium">{key}</span>
-                      <span className="text-xl font-bold">
-                        {value ? '✅' : '❌'}
-                      </span>
-                    </div>
-                  ))}
                 </div>
               )}
             </div>
@@ -369,5 +395,3 @@ export default function Home() {
     </main>
   );
 }
-
-
