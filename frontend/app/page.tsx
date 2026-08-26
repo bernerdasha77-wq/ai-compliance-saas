@@ -8,20 +8,17 @@ import ThemeToggle from './components/ThemeToggle';
 const docTypes = [
   {
     id: 'contract',
-    title: '📄 Договор с контрагентом',
-    description: 'Проверим утечки данных, контроль доступа, шифрование и ответственность за инциденты',
+    title: 'Договор с контрагентом',
     icon: '📄'
   },
   {
     id: 'eula',
-    title: '📱 EULA / Terms',
-    description: 'Оценим лицензионные ограничения, авторские права и условия использования',
+    title: 'EULA / Terms',
     icon: '📱'
   },
   {
     id: 'privacy',
-    title: '🔒 Политика конфиденциальности',
-    description: 'Проверим сбор данных, согласия пользователей и передачу информации третьим лицам',
+    title: 'Политика конфиденциальности',
     icon: '🔒'
   }
 ];
@@ -196,18 +193,15 @@ export default function Home() {
               <button
                 key={type.id}
                 onClick={() => setDocType(type.id)}
-                className={`p-4 rounded-xl border-2 text-left transition ${
+                className={`p-4 rounded-xl border-2 text-center transition ${
                   docType === type.id
                     ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 shadow-md'
                     : 'border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600'
                 }`}
               >
-                <div className="text-2xl mb-1">{type.icon}</div>
-                <div className="font-semibold text-gray-800 dark:text-white text-sm">
+                <div className="text-3xl">{type.icon}</div>
+                <div className="font-semibold text-gray-800 dark:text-white text-sm mt-1">
                   {type.title}
-                </div>
-                <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  {type.description}
                 </div>
               </button>
             ))}
@@ -216,13 +210,15 @@ export default function Home() {
 
         {/* Динамическое описание выбранного типа */}
         {docType && (
-          <div className="text-center mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-200 dark:border-blue-800">
+          <div className="text-center mb-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-200 dark:border-blue-800">
             <p className="text-sm text-gray-700 dark:text-gray-300">
               <span className="font-medium">Вы выбрали:</span>{' '}
               {docTypes.find(t => t.id === docType)?.title}
             </p>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-              {docTypes.find(t => t.id === docType)?.description}
+            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+              {docType === 'contract' && 'Проверим утечки данных, контроль доступа, шифрование и ответственность за инциденты'}
+              {docType === 'eula' && 'Оценим лицензионные ограничения, авторские права и условия использования'}
+              {docType === 'privacy' && 'Проверим сбор данных, согласия пользователей и передачу информации третьим лицам'}
             </p>
           </div>
         )}
@@ -281,7 +277,6 @@ export default function Home() {
             <h3 className="text-2xl font-bold text-gray-800 dark:text-white mb-4">📋 Результат анализа</h3>
 
             <div className="space-y-4">
-              {/* Статус */}
               <div className="flex items-center gap-2">
                 <span className="font-semibold text-gray-700 dark:text-gray-300">Статус:</span>
                 <span className="px-4 py-1 bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300 rounded-full text-sm font-bold">
@@ -289,7 +284,6 @@ export default function Home() {
                 </span>
               </div>
 
-              {/* Общий статус (с цветным кружком) */}
               {result.analysis?.overall_status && (
                 <div className="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-xl border border-gray-200 dark:border-gray-600">
                   <p className="text-gray-700 dark:text-gray-300 font-semibold">Общий статус:</p>
@@ -307,7 +301,6 @@ export default function Home() {
                 </div>
               )}
 
-              {/* Детальный разбор (правила с цитатами, статьями, формулировками) */}
               {result.analysis?.rules && result.analysis.rules.length > 0 && (
                 <div className="space-y-4">
                   <p className="font-semibold text-gray-700 dark:text-gray-300">📌 Детальный разбор:</p>
@@ -371,7 +364,6 @@ export default function Home() {
                 </div>
               )}
 
-              {/* Рекомендации (чек-лист действий) */}
               {result.analysis?.recommendations && result.analysis.recommendations.length > 0 && (
                 <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 rounded-xl">
                   <p className="font-semibold text-gray-700 dark:text-gray-300 mb-2">💡 Чек-лист действий:</p>
