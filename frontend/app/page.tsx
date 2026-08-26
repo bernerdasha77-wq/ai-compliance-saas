@@ -68,6 +68,8 @@ export default function Home() {
     const formData = new FormData();
     formData.append('file', file);
     formData.append('company_name', 'Тестовая компания');
+    const docType = (document.getElementById('docType') as HTMLSelectElement)?.value || 'contract';
+    formData.append('doc_type', docType);
 
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://ai-compliance-saas-6nz5.onrender.com';
@@ -163,6 +165,19 @@ export default function Home() {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
+        <div className="mb-4">
+  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+    Тип документа
+  </label>
+  <select
+    id="docType"
+    className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+    defaultValue="contract"
+  >
+    <option value="contract">📄 Договор с контрагентом</option>
+    <option value="eula">📱 Лицензионное соглашение (EULA)</option>
+  </select>
+</div>
           <div className="border-3 border-dashed border-blue-300 dark:border-blue-600 rounded-2xl p-10 text-center hover:border-blue-500 dark:hover:border-blue-400 transition bg-white/70 dark:bg-gray-800/70 backdrop-blur-sm shadow-sm hover:shadow-md">
             <input
               type="file"

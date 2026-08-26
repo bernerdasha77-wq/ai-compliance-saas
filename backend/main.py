@@ -132,6 +132,7 @@ async def analyze_contract_endpoint(
     file: UploadFile = File(...),
     company_name: str = "Test Company",
     law: str = "152-ФЗ",
+    doc_type: str = "contract",
     db = Depends(get_db),
     token: str = Depends(security)
 ):
@@ -148,7 +149,7 @@ async def analyze_contract_endpoint(
         # Временная заглушка: пока все пользователи бесплатные
         is_pro = True
         
-        analysis = await analyze_contract(text, is_pro=is_pro, law=law)
+        analysis = await analyze_contract(text, is_pro=is_pro, law=law, doc_type=doc_type)
 
         checklist = {}
         if analysis.get('rules'):
