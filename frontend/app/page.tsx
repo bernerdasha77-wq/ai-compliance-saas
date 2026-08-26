@@ -13,7 +13,7 @@ const docTypes = [
   },
   {
     id: 'eula',
-    title: 'EULA / Terms',
+    title: 'EULA / Terms (Лицензия и условия)',
     icon: '📱'
   },
   {
