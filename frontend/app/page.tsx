@@ -82,7 +82,7 @@ export default function Home() {
     console.log('🌐 Отправка запроса на:', `${apiUrl}/api/analyze`);
 
     const response = await fetch(
-  ${apiUrl}/api/analyze?company_name=Тестовая компания&law=152-ФЗ&doc_type=${docType}, {
+  `${apiUrl}/api/analyze?company_name=Тестовая компания&law=152-ФЗ&doc_type=${docType}`, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${token}`,
