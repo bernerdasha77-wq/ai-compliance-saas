@@ -20,9 +20,7 @@ async def analyze_contract(
     law: str = "152-ФЗ",
     doc_type: str = "contract"
 ) -> dict:
-    """ВРЕМЕННО: всегда используем EULA для теста"""
-    # Временно игнорируем doc_type и всегда используем EULA
-    analyzer = ANALYZERS.get("eula", ANALYZERS["contract"])
+    analyzer = ANALYZERS.get(doc_type, ANALYZERS["contract"])
     if is_pro:
         return await analyzer["deepseek"](text, law)
     else:

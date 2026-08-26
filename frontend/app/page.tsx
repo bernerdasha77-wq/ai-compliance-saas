@@ -89,6 +89,7 @@ export default function Home() {
     formData.append('file', file);
     formData.append('company_name', 'Тестовая компания');
     formData.append('doc_type', docType);
+    console.log('📋 Отправляем doc_type:', docType);
 
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://ai-compliance-saas-6nz5.onrender.com';
