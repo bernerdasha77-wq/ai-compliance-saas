@@ -133,7 +133,7 @@ async def analyze_contract_endpoint(
         text = await extract_text_from_file(file)
         
         # Временная заглушка: пока все пользователи бесплатные
-        is_pro = False
+        is_pro = True
         
         # ✅ ПЕРЕДАЁМ DOC_TYPE
         analysis = await analyze_contract(text, is_pro=is_pro, law=law, doc_type=doc_type)
