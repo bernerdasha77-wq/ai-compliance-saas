@@ -19,19 +19,13 @@ from auth import get_password_hash, verify_password, create_access_token, decode
 
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 
-# ============================================
 # АДМИНИСТРАТОР
-# ============================================
-ADMIN_EMAIL = "bernerdasha@yandex.ru"  
+ADMIN_EMAIL = "bernerdasha@yandex.ru"
 
-# ============================================
 # ПРИЛОЖЕНИЕ
-# ============================================
 app = FastAPI(title="AI Compliance SaaS")
 
-# ============================================
-# РУЧНОЙ КОНТРОЛЬ CORS (ДЛЯ ВСЕХ ЗАПРОСОВ)
-# ============================================
+# РУЧНОЙ КОНТРОЛЬ CORS
 @app.middleware("http")
 async def cors_middleware(request: Request, call_next):
     if request.method == "OPTIONS":
@@ -47,9 +41,7 @@ async def cors_middleware(request: Request, call_next):
     response.headers["Access-Control-Allow-Credentials"] = "true"
     return response
 
-# ============================================
 # МОДЕЛИ ДЛЯ АВТОРИЗАЦИИ
-# ============================================
 class UserRegister(BaseModel):
     email: str
     password: str
@@ -59,9 +51,7 @@ class UserLogin(BaseModel):
     email: str
     password: str
 
-# ============================================
 # БАЗОВЫЕ ЭНДПОИНТЫ
-# ============================================
 @app.get("/")
 async def root():
     return {"message": "AI Compliance API is working!"}
@@ -70,9 +60,7 @@ async def root():
 async def health():
     return {"status": "ok"}
 
-# ============================================
 # РЕГИСТРАЦИЯ И ВХОД
-# ============================================
 @app.post("/api/register")
 async def register_user(user_data: UserRegister, db: Session = Depends(get_db)):
     existing_user = db.query(User).filter(User.email == user_data.email).first()
@@ -124,9 +112,7 @@ async def login_user(user_data: UserLogin, db: Session = Depends(get_db)):
         "token_type": "bearer"
     }
 
-# ============================================
-# АНАЛИЗ ДОГОВОРА (С АВТОРИЗАЦИЕЙ)
-# ============================================
+# АНАЛИЗ ДОГОВОРА
 @app.post("/api/analyze", response_model=None)
 async def analyze_contract_endpoint(
     file: UploadFile = File(...),
@@ -149,6 +135,7 @@ async def analyze_contract_endpoint(
         # Временная заглушка: пока все пользователи бесплатные
         is_pro = False
         
+        # ✅ ПЕРЕДАЁМ DOC_TYPE
         analysis = await analyze_contract(text, is_pro=is_pro, law=law, doc_type=doc_type)
 
         checklist = {}
@@ -168,7 +155,7 @@ async def analyze_contract_endpoint(
             risk_level = "medium"
         else:
             risk_level = "high"
-        
+
         report = Report(
             user_id=user.id,
             file_name=file.filename,
@@ -182,7 +169,7 @@ async def analyze_contract_endpoint(
         db.add(report)
         db.commit()
         db.refresh(report)
-        
+
         return {
             "status": "processed",
             "report_id": report.id,
@@ -194,15 +181,13 @@ async def analyze_contract_endpoint(
             "risk_level": risk_level,
             "created_at": report.created_at.isoformat()
         }
-        
+
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Ошибка: {str(e)}")
 
-# ============================================
 # ПОЛУЧЕНИЕ ОТЧЁТОВ
-# ============================================
 @app.get("/api/reports/{report_id}")
 async def get_report(report_id: int, db: Session = Depends(get_db)):
     report = db.query(Report).filter(Report.id == report_id).first()
@@ -237,15 +222,14 @@ async def get_users(db: Session = Depends(get_db)):
     return [
         {
             "id": u.id,
-            "email": u.email,"full_name": u.full_name,
+            "email": u.email,
+            "full_name": u.full_name,
             "created_at": u.created_at.isoformat()
         }
         for u in users
     ]
 
-# ============================================
-# АДМИН-ПАНЕЛЬ (ТОЛЬКО ДЛЯ ВАС)
-# ============================================
+# АДМИН-ПАНЕЛЬ
 @app.get("/api/admin/users")
 async def get_all_users(
     x_admin_email: str = Header(...),
