@@ -88,18 +88,19 @@ export default function Home() {
     const formData = new FormData();
     formData.append('file', file);
     formData.append('company_name', 'Тестовая компания');
-    formData.append('doc_type', docType);
-    console.log('📋 Отправляем doc_type:', docType);
 
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://ai-compliance-saas-6nz5.onrender.com';
-      const response = await fetch(`${apiUrl}/api/analyze`, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-        body: formData,
-      });
+      const response = await fetch(
+  `${apiUrl}/api/analyze?company_name=Тестовая компания&law=152-ФЗ&doc_type=${docType}`,
+  {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    body: formData,
+  }
+);
 
       if (response.status === 401) {
         localStorage.removeItem('access_token');
