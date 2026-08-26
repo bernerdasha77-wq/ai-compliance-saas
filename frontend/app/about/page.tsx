@@ -18,9 +18,8 @@ export default function AboutPage() {
             О проекте
           </h1>
           <p className="text-lg text-gray-600 dark:text-gray-300 mb-8 leading-relaxed">
-            AI Compliance Checker — это сервис для быстрой проверки договоров на соответствие{' '}
-            <span className="font-semibold text-blue-600 dark:text-blue-400">законам и стандартам кибербезопасности</span> (
-            <span className="text-blue-600 dark:text-blue-400 font-medium">152-ФЗ</span>,{' '}
+            AI Compliance Checker — это сервис для быстрой юридической проверки документов на соответствие законам и стандартам
+            (<span className="text-blue-600 dark:text-blue-400 font-medium">152-ФЗ</span>,{' '}
             <span className="text-blue-600 dark:text-blue-400 font-medium">GDPR</span>,{' '}
             <span className="text-blue-600 dark:text-blue-400 font-medium">ISO 27001</span>).
           </p>
