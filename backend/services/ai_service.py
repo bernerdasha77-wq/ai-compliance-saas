@@ -12,6 +12,10 @@ ANALYZERS = {
         "local": eula_local,
         "deepseek": eula_deepseek,
     },
+    "privacy": {  # ← ДОБАВИТЬ
+        "local": privacy_local,
+        "deepseek": privacy_deepseek,
+    },
 }
 
 async def analyze_contract(
@@ -20,7 +24,7 @@ async def analyze_contract(
     law: str = "152-ФЗ",
     doc_type: str = "contract"
 ) -> dict:
-    print(f"🔍 Получен doc_type в ai_service: {doc_type}")  # ← ДОБАВИЛИ
+    print(f"🔍 Получен doc_type в ai_service: {doc_type}") 
     analyzer = ANALYZERS.get(doc_type, ANALYZERS["contract"])
     if is_pro:
         return await analyzer["deepseek"](text, law)
