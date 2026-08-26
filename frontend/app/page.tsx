@@ -76,13 +76,13 @@ export default function Home() {
 
   const docType = (document.getElementById('docType') as HTMLSelectElement)?.value || 'contract';
   console.log('📋 Тип документа (docType):', docType);
-  formData.append('doc_type', docType);
 
   try {
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://ai-compliance-saas-6nz5.onrender.com';
     console.log('🌐 Отправка запроса на:', `${apiUrl}/api/analyze`);
 
-    const response = await fetch(`${apiUrl}/api/analyze`, {
+    const response = await fetch(
+  ${apiUrl}/api/analyze?company_name=Тестовая компания&law=152-ФЗ&doc_type=${docType}, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${token}`,
