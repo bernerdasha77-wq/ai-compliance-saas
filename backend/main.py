@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+import os
 import sys
 import io
 import json
@@ -13,6 +14,15 @@ from pydantic import BaseModel
 
 from services.parser import extract_text_from_file
 from services.ai_service import analyze_contract
+from services.access import (
+    FREE_CHECKS_LIMIT,
+    can_run_check,
+    consume_check,
+    should_return_full_report,
+    checks_remaining,
+    strip_violation_details,
+)
+from services.payments import TARIFFS, create_payment, apply_payment
 from database import get_db, Report, User
 from encryption_utils import encrypt_data, decrypt_data
 from auth import get_password_hash, verify_password, create_access_token, decode_access_token, get_user_from_token, security
@@ -21,6 +31,11 @@ sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 
 # АДМИНИСТРАТОР
 ADMIN_EMAIL = "bernerdasha@yandex.ru"
+
+# Куда редиректить пользователя после оплаты (см. /api/payments/create) —
+# сама выдача оплаченного тарифа идёт не через этот редирект, а через
+# /api/payments/webhook, независимо от того, вернулся ли пользователь на сайт.
+FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3000")
 
 # ПРИЛОЖЕНИЕ
 app = FastAPI(title="AI Compliance SaaS")
@@ -129,32 +144,40 @@ async def analyze_contract_endpoint(
     if not file.filename.endswith(('.pdf', '.docx')):
         raise HTTPException(status_code=400, detail="Поддерживаются только PDF и DOCX")
 
+    # Лимит проверяем ДО вызова DeepSeek — чтобы не тратить деньги на запрос,
+    # который всё равно не покажем пользователю.
+    if not can_run_check(user):
+        raise HTTPException(
+            status_code=402,
+            detail={
+                "message": "Лимит бесплатных проверок исчерпан",
+                "checks_used": user.free_checks_used,
+                "checks_limit": FREE_CHECKS_LIMIT,
+            },
+        )
+
     try:
         text = await extract_text_from_file(file)
-        
-        # Временная заглушка: пока все пользователи бесплатные
-        is_pro = True
-        
-        # ✅ ПЕРЕДАЁМ DOC_TYPE
-        analysis = await analyze_contract(text, is_pro=is_pro, law=law, doc_type=doc_type)
 
-        checklist = {}
-        if analysis.get('rules'):
-            for rule in analysis['rules']:
-                name = rule.get('name', '')
-                status_text = rule.get('status', '')
-                checklist[name] = '🟢' in status_text or 'Соответствует' in status_text
+        is_full = should_return_full_report(user)
 
-        total = len(checklist) if checklist else 1
-        passed = sum(1 for v in checklist.values() if v)
-        risk_ratio = passed / total if total > 0 else 0
+        analysis = await analyze_contract(text, law=law, doc_type=doc_type)
 
-        if risk_ratio == 1.0:
-            risk_level = "low"
-        elif risk_ratio >= 0.6:
-            risk_level = "medium"
-        else:
-            risk_level = "high"
+        # score/risk_label считаются детерминированно на бэкенде (services/scoring.py)
+        # из уровней риска найденных нарушений — см. analysis["score"] и analysis["risk_label"]
+        RISK_LABEL_TO_LEVEL = {"низкий": "low", "средний": "medium", "высокий": "high"}
+        risk_level = RISK_LABEL_TO_LEVEL.get(analysis.get("risk_label"), "medium")
+
+        # Чек-лист по стандартам (для обратной совместимости и истории отчётов):
+        # стандарт считается пройденным, если его score >= 80
+        checklist = {
+            std["name"]: std["score"] >= 80
+            for std in analysis.get("standards", [])
+        }
+
+        analysis["is_full_report"] = is_full
+        if not is_full:
+            analysis = strip_violation_details(analysis)
 
         report = Report(
             user_id=user.id,
@@ -164,9 +187,16 @@ async def analyze_contract_endpoint(
             text_preview=encrypt_data(text[:500] + "..." if len(text) > 500 else text),
             analysis_results=encrypt_data(json.dumps(analysis, ensure_ascii=False)),
             checklist=checklist,
+            is_full_report=is_full,
             created_at=datetime.utcnow()
         )
         db.add(report)
+
+        # Проверка списывается из подходящего "кармана" пользователя
+        # (подписка → разовый кредит → бесплатный лимит, см. services/access.py)
+        # только после успешного анализа — не тратим лимит на упавшие запросы.
+        consume_check(user)
+
         db.commit()
         db.refresh(report)
 
@@ -179,6 +209,10 @@ async def analyze_contract_endpoint(
             "analysis": analysis,
             "checklist": checklist,
             "risk_level": risk_level,
+            "is_full_report": is_full,
+            "checks_used": user.free_checks_used,
+            "checks_remaining": checks_remaining(user),
+            "checks_limit": FREE_CHECKS_LIMIT,
             "created_at": report.created_at.isoformat()
         }
 
@@ -186,6 +220,43 @@ async def analyze_contract_endpoint(
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Ошибка: {str(e)}")
+
+# ИНФОРМАЦИЯ О ТАРИФЕ И ОСТАВШИХСЯ ПРОВЕРКАХ
+@app.get("/api/usage")
+async def get_usage(db = Depends(get_db), token: str = Depends(security)):
+    user = await get_user_from_token(token, db)
+    if not user:
+        raise HTTPException(status_code=401, detail="Неверный токен")
+
+    return {
+        "plan": user.plan,
+        "checks_used": user.free_checks_used,
+        "checks_remaining": checks_remaining(user),
+        "checks_limit": FREE_CHECKS_LIMIT,
+    }
+
+# ОПЛАТА (ЮKassa)
+@app.post("/api/payments/create")
+async def create_payment_endpoint(tariff: str, db: Session = Depends(get_db), token: str = Depends(security)):
+    user = await get_user_from_token(token, db)
+    if not user:
+        raise HTTPException(status_code=401, detail="Неверный токен")
+    if tariff not in TARIFFS:
+        raise HTTPException(status_code=400, detail="Неизвестный тариф")
+
+    result = create_payment(user, tariff, return_url=f"{FRONTEND_URL}/payment-result")
+    return result
+
+# Вебхук ЮKassa — вызывается сервером ЮKassa, не залогиненным пользователем,
+# поэтому без Depends(security). Статусу из тела запроса не доверяем — см.
+# services/payments.py:apply_payment (переспрашивает статус у самой ЮKassa).
+@app.post("/api/payments/webhook")
+async def payments_webhook(request: Request):
+    body = await request.json()
+    payment_id = body.get("object", {}).get("id")
+    if payment_id:
+        apply_payment(payment_id)
+    return {"status": "ok"}
 
 # ПОЛУЧЕНИЕ ОТЧЁТОВ
 @app.get("/api/reports/{report_id}")
@@ -200,6 +271,7 @@ async def get_report(report_id: int, db: Session = Depends(get_db)):
         "risk_level": report.risk_level,
         "analysis": json.loads(decrypt_data(report.analysis_results)),
         "checklist": report.checklist,
+        "is_full_report": report.is_full_report,
         "created_at": report.created_at.isoformat()
     }
 

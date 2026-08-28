@@ -1,0 +1,17 @@
+# Локальный Postgres для разработки. Не для продакшена — на проде используется
+# управляемая БД на Render (см. DATABASE_URL в переменных окружения Render).
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: compliance
+      POSTGRES_PASSWORD: compliance_local_pw
+      POSTGRES_DB: compliance_db
+    ports:
+      - "5433:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+volumes:
+  pgdata:

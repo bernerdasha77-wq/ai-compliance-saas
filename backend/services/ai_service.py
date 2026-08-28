@@ -1,33 +1,18 @@
-from .ai_contract import local_analyze as contract_local
-from .ai_contract import deepseek_analyze as contract_deepseek
-from .ai_eula import local_analyze as eula_local
-from .ai_eula import deepseek_analyze as eula_deepseek
-from .ai_privacy import local_analyze as privacy_local      
-from .ai_privacy import deepseek_analyze as privacy_deepseek  
+from .ai_contract import deepseek_analyze as contract_analyze
+from .ai_eula import deepseek_analyze as eula_analyze
+from .ai_privacy import deepseek_analyze as privacy_analyze
 
+# Все тарифы (бесплатный и платный) идут через DeepSeek — разница между ними
+# теперь не в качестве анализа, а в лимите проверок и в том, показываются ли
+# все детали или урезанное превью (см. services/access.py). local_analyze в
+# каждом ai_*.py остаётся как запасной вариант на случай сбоя DeepSeek.
 ANALYZERS = {
-    "contract": {
-        "local": contract_local,
-        "deepseek": contract_deepseek,
-    },
-    "eula": {
-        "local": eula_local,
-        "deepseek": eula_deepseek,
-    },
-    "privacy": {
-        "local": privacy_local,
-        "deepseek": privacy_deepseek,
-    },
+    "contract": contract_analyze,
+    "eula": eula_analyze,
+    "privacy": privacy_analyze,
 }
 
-async def analyze_contract(
-    text: str,
-    is_pro: bool = False,
-    law: str = "152-ФЗ",
-    doc_type: str = "contract"
-) -> dict:
+
+async def analyze_contract(text: str, law: str = "152-ФЗ", doc_type: str = "contract") -> dict:
     analyzer = ANALYZERS.get(doc_type, ANALYZERS["contract"])
-    if is_pro:
-        return await analyzer["deepseek"](text, law)
-    else:
-        return await analyzer["local"](text)
+    return await analyzer(text, law)

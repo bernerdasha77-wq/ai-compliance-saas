@@ -1,14 +1,10 @@
 'use client';
 
 import { useState } from 'react';
+import { useAuth } from '../lib/auth-context';
 
-interface AuthModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onLogin: (token: string) => void;
-}
-
-export default function AuthModal({ isOpen, onClose, onLogin }: AuthModalProps) {
+export default function AuthModal() {
+  const { isAuthOpen, closeAuth, login } = useAuth();
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -42,8 +38,8 @@ export default function AuthModal({ isOpen, onClose, onLogin }: AuthModalProps) 
 
       localStorage.setItem('access_token', data.access_token);
       localStorage.setItem('user', JSON.stringify(data.user));
-      onLogin(data.access_token);
-      onClose();
+      login(data.access_token);
+      closeAuth();
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -51,18 +47,19 @@ export default function AuthModal({ isOpen, onClose, onLogin }: AuthModalProps) 
     }
   };
 
-  if (!isOpen) return null;
+  if (!isAuthOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 dark:bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 sm:p-8 max-w-md w-full shadow-2xl border border-gray-200 dark:border-gray-700 transition-colors">
+    <div className="fixed inset-0 bg-ink-900/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-card p-6 sm:p-8 max-w-md w-full shadow-card-hover border border-ink-100">
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+          <h2 className="text-xl font-semibold text-ink-900">
             {isLogin ? 'Вход' : 'Регистрация'}
           </h2>
           <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 text-3xl leading-none transition"
+            onClick={closeAuth}
+            className="text-ink-500 hover:text-ink-900 text-2xl leading-none transition"
+            aria-label="Закрыть"
           >
             ×
           </button>
@@ -71,14 +68,14 @@ export default function AuthModal({ isOpen, onClose, onLogin }: AuthModalProps) 
         <form onSubmit={handleSubmit} className="space-y-4">
           {!isLogin && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label className="block text-sm font-medium text-ink-700 mb-1">
                 Полное имя
               </label>
               <input
                 type="text"
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
-                className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"
+                className="w-full px-4 py-2.5 border border-ink-100 rounded-lg bg-white text-ink-900 placeholder-ink-300 focus:ring-2 focus:ring-brand/30 focus:border-brand outline-none transition"
                 placeholder="Иван Иванов"
                 required
               />
@@ -86,35 +83,35 @@ export default function AuthModal({ isOpen, onClose, onLogin }: AuthModalProps) 
           )}
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            <label className="block text-sm font-medium text-ink-700 mb-1">
               Email
             </label>
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"
+              className="w-full px-4 py-2.5 border border-ink-100 rounded-lg bg-white text-ink-900 placeholder-ink-300 focus:ring-2 focus:ring-brand/30 focus:border-brand outline-none transition"
               placeholder="you@example.com"
               required
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            <label className="block text-sm font-medium text-ink-700 mb-1">
               Пароль
             </label>
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"
+              className="w-full px-4 py-2.5 border border-ink-100 rounded-lg bg-white text-ink-900 placeholder-ink-300 focus:ring-2 focus:ring-brand/30 focus:border-brand outline-none transition"
               placeholder="••••••••"
               required
             />
           </div>
 
           {error && (
-            <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl text-red-700 dark:text-red-300 text-sm">
+            <div className="p-3 bg-risk-high-bg border border-risk-high-border rounded-lg text-risk-high text-sm">
               {error}
             </div>
           )}
@@ -122,7 +119,7 @@ export default function AuthModal({ isOpen, onClose, onLogin }: AuthModalProps) 
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3 text-white bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-500 dark:to-indigo-500 rounded-xl font-semibold hover:from-blue-700 hover:to-indigo-700 dark:hover:from-blue-600 dark:hover:to-indigo-600 disabled:opacity-50 transition shadow-md hover:shadow-lg"
+            className="w-full py-3 text-white bg-brand rounded-lg font-semibold hover:bg-brand-hover disabled:opacity-50 transition"
           >
             {loading ? 'Загрузка...' : (isLogin ? 'Войти' : 'Зарегистрироваться')}
           </button>
@@ -131,7 +128,7 @@ export default function AuthModal({ isOpen, onClose, onLogin }: AuthModalProps) 
         <div className="mt-5 text-center">
           <button
             onClick={() => setIsLogin(!isLogin)}
-            className="text-sm text-blue-600 dark:text-blue-400 hover:underline transition"
+            className="text-sm text-brand hover:text-brand-hover transition"
           >
             {isLogin ? 'Нет аккаунта? Зарегистрируйтесь' : 'Уже есть аккаунт? Войдите'}
           </button>
@@ -140,5 +137,3 @@ export default function AuthModal({ isOpen, onClose, onLogin }: AuthModalProps) 
     </div>
   );
 }
-
-
