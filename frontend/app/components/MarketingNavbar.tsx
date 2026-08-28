@@ -31,7 +31,7 @@ const NAV_LINK_CLASS =
 export default function MarketingNavbar() {
   const pathname = usePathname();
   const isHome = pathname === '/';
-  const { openAuth } = useAuth();
+  const { isAuthenticated, user, openAuth, logout } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const close = () => setIsOpen(false);
 
@@ -100,12 +100,26 @@ export default function MarketingNavbar() {
         </nav>
 
         <div className="hidden md:flex items-center gap-3 shrink-0">
-          <button
-            onClick={openAuth}
-            className="text-sm font-medium text-ink-700 hover:text-ink-900 transition"
-          >
-            Войти
-          </button>
+          {isAuthenticated ? (
+            <>
+              <span className="text-sm font-medium text-ink-700 truncate max-w-[160px]">
+                {user?.full_name || user?.email}
+              </span>
+              <button
+                onClick={logout}
+                className="text-sm font-medium text-ink-700 hover:text-ink-900 transition"
+              >
+                Выйти
+              </button>
+            </>
+          ) : (
+            <button
+              onClick={openAuth}
+              className="text-sm font-medium text-ink-700 hover:text-ink-900 transition"
+            >
+              Войти
+            </button>
+          )}
           <Link
             href="/analyze"
             className="px-4 py-2.5 bg-brand text-white text-sm font-semibold rounded-lg hover:bg-brand-hover transition"
@@ -185,12 +199,26 @@ export default function MarketingNavbar() {
           </div>
 
           <div className="p-4 border-t border-ink-100 space-y-2 shrink-0">
-            <button
-              onClick={() => { close(); openAuth(); }}
-              className="w-full px-4 py-2.5 text-sm font-medium text-ink-700 border border-ink-200 rounded-lg hover:bg-ink-100 transition"
-            >
-              Войти
-            </button>
+            {isAuthenticated ? (
+              <>
+                <p className="px-1 text-sm text-ink-500 truncate">
+                  Вы вошли как <span className="font-medium text-ink-900">{user?.full_name || user?.email}</span>
+                </p>
+                <button
+                  onClick={() => { close(); logout(); }}
+                  className="w-full px-4 py-2.5 text-sm font-medium text-ink-700 border border-ink-200 rounded-lg hover:bg-ink-100 transition"
+                >
+                  Выйти
+                </button>
+              </>
+            ) : (
+              <button
+                onClick={() => { close(); openAuth(); }}
+                className="w-full px-4 py-2.5 text-sm font-medium text-ink-700 border border-ink-200 rounded-lg hover:bg-ink-100 transition"
+              >
+                Войти
+              </button>
+            )}
             <Link
               href="/analyze"
               onClick={close}
