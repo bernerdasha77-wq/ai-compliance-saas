@@ -1,10 +1,16 @@
 import os
-from openai import OpenAI
+from openai import AsyncOpenAI
 
-_client: OpenAI | None = None
+# AsyncOpenAI, а не синхронный OpenAI: раньше .create() блокировал весь
+# event loop на всё время запроса к DeepSeek (~60-100с) — из-за этого падали
+# health-check'и и параллельные пользователи фактически ставились в очередь
+# друг за другом вместо конкурентной обработки (см. main.py, единственный
+# uvicorn-воркер). await на асинхронном клиенте отдаёт управление на время
+# сетевого ожидания, не меняя саму скорость ответа DeepSeek.
+_client: AsyncOpenAI | None = None
 
 
-def _get_client() -> OpenAI:
+def _get_client() -> AsyncOpenAI:
     global _client
     if _client is None:
         api_key = os.getenv("DEEPSEEK_API_KEY")
@@ -13,13 +19,13 @@ def _get_client() -> OpenAI:
                 "DEEPSEEK_API_KEY не задан в .env — добавьте ключ с "
                 "platform.deepseek.com, чтобы анализ через AI заработал."
             )
-        _client = OpenAI(api_key=api_key, base_url="https://api.deepseek.com/v1")
+        _client = AsyncOpenAI(api_key=api_key, base_url="https://api.deepseek.com/v1")
     return _client
 
 
 async def call_deepseek(system_prompt: str, user_prompt: str) -> str:
     client = _get_client()
-    response = client.chat.completions.create(
+    response = await client.chat.completions.create(
         model="deepseek-chat",
         messages=[
             {"role": "system", "content": system_prompt},

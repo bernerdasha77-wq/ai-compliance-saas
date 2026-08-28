@@ -1,13 +1,20 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import Link from 'next/link';
 import Card from '../../components/ui/Card';
 import ScoreSummary from '../../components/ScoreSummary';
 import RiskList from '../../components/RiskList';
 import UpsellCard from '../../components/UpsellCard';
 import { useAuth } from '../../lib/auth-context';
 import { AnalysisResult } from '../../lib/types';
-import { IconFileText, IconSmartphone, IconLock, IconUpload, IconAlertTriangle } from '../../components/icons';
+import { IconFileText, IconSmartphone, IconLock, IconUpload, IconAlertTriangle, IconHistory } from '../../components/icons';
+
+const PROGRESS_STEPS = [
+  { until: 25, label: 'Читаем документ' },
+  { until: 60, label: 'Ищем нарушения по 152-ФЗ, GDPR, ISO 27001, NIS2' },
+  { until: 100, label: 'Формируем отчёт и рекомендации' },
+];
 
 const docTypes = [
   { id: 'contract', title: 'Договор с контрагентом', icon: IconFileText, hint: 'Проверим утечки данных, контроль доступа, шифрование и ответственность за инциденты' },
@@ -36,11 +43,32 @@ export default function Home() {
   const { token, openAuth } = useAuth();
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
+  const [progress, setProgress] = useState(0);
   const [result, setResult] = useState<AnalyzeResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [limitReached, setLimitReached] = useState(false);
   const [docType, setDocType] = useState('contract');
   const [usage, setUsage] = useState<UsageInfo | null>(null);
+  const progressTimer = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const stopProgress = () => {
+    if (progressTimer.current) {
+      clearInterval(progressTimer.current);
+      progressTimer.current = null;
+    }
+  };
+
+  const startProgress = () => {
+    setProgress(0);
+    progressTimer.current = setInterval(() => {
+      // Асимптотически подбирается к ~92% — честная имитация: мы не знаем
+      // реальный прогресс на сервере, но не хотим ни застревать на 0%,
+      // ни соврать про 100% раньше настоящего ответа.
+      setProgress((p) => p + (92 - p) * 0.03);
+    }, 500);
+  };
+
+  useEffect(() => stopProgress, []);
 
   useEffect(() => {
     if (!token) {
@@ -81,6 +109,7 @@ export default function Home() {
     setError(null);
     setResult(null);
     setLimitReached(false);
+    startProgress();
 
     const formData = new FormData();
     formData.append('file', file);
@@ -115,6 +144,7 @@ export default function Home() {
       }
 
       const data = await response.json();
+      setProgress(100);
       setResult(data);
       setUsage({
         plan: data.checks_remaining === null ? 'paid' : 'free',
@@ -125,6 +155,7 @@ export default function Home() {
     } catch (err: any) {
       setError(err.message || 'Произошла ошибка');
     } finally {
+      stopProgress();
       setLoading(false);
     }
   };
@@ -204,6 +235,41 @@ export default function Home() {
           {loading ? 'Анализирую...' : 'Проверить документ'}
         </button>
       </form>
+
+      {loading && (
+        <Card className="mt-6 p-5">
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-sm font-medium text-ink-900">
+              {PROGRESS_STEPS.find((s) => progress < s.until)?.label ?? PROGRESS_STEPS[PROGRESS_STEPS.length - 1].label}
+            </p>
+            <span className="text-sm text-ink-500 tabular-nums">{Math.round(progress)}%</span>
+          </div>
+          <div className="h-2 rounded-full bg-ink-100 overflow-hidden">
+            <div
+              className="h-full bg-brand rounded-full transition-all duration-500 ease-out"
+              style={{ width: `${progress}%` }}
+            />
+          </div>
+          <p className="text-xs text-ink-500 mt-3">
+            Обычно занимает 1–3 минуты. Не закрывайте и не перезагружайте страницу — анализ
+            продолжится на сервере, а результат в любом случае сохранится в{' '}
+            <Link href="/history" className="text-brand hover:underline">
+              «Мои отчёты»
+            </Link>
+            , даже если вы уйдёте со страницы.
+          </p>
+        </Card>
+      )}
+
+      {!loading && (
+        <p className="mt-4 text-xs text-ink-400 flex items-center gap-1.5">
+          <IconHistory className="w-3.5 h-3.5" />
+          Уже отправляли документ и не дождались ответа? Результат может быть здесь:{' '}
+          <Link href="/history" className="text-brand hover:underline">
+            Мои отчёты
+          </Link>
+        </p>
+      )}
 
       {error && (
         <Card className="mt-6 p-4 flex items-center gap-2.5 border-risk-high-border bg-risk-high-bg">

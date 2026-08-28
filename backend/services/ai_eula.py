@@ -1,3 +1,5 @@
+import asyncio
+
 from .deepseek_client import call_deepseek
 from .prompts import build_prompt, DOC_CONFIGS
 from .scoring import parse_and_score, build_local_result
@@ -57,7 +59,7 @@ async def deepseek_analyze(text: str, law: str = "152-ФЗ") -> dict:
     """Анализ через DeepSeek. При сбое запроса или нечитаемом ответе — тихий
     откат на локальный анализ по ключевым словам, чтобы пользователь получил
     хоть какой-то результат, а не ошибку (см. build_local_result)."""
-    system_prompt, user_prompt, is_truncated = build_prompt(DOC_TYPE, text, law)
+    system_prompt, user_prompt, is_truncated = await asyncio.to_thread(build_prompt, DOC_TYPE, text, law)
     if is_truncated:
         print(f"[DeepSeek] Документ обрезан для анализа (doc_type={DOC_TYPE})")
 
