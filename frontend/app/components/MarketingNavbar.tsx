@@ -102,9 +102,12 @@ export default function MarketingNavbar() {
         <div className="hidden md:flex items-center gap-3 shrink-0">
           {isAuthenticated ? (
             <>
-              <span className="text-sm font-medium text-ink-700 truncate max-w-[160px]">
+              <Link
+                href="/analyze"
+                className="text-sm font-medium text-ink-700 hover:text-ink-900 truncate max-w-[160px] transition"
+              >
                 {user?.full_name || user?.email}
-              </span>
+              </Link>
               <button
                 onClick={logout}
                 className="text-sm font-medium text-ink-700 hover:text-ink-900 transition"
@@ -201,9 +204,9 @@ export default function MarketingNavbar() {
           <div className="p-4 border-t border-ink-100 space-y-2 shrink-0">
             {isAuthenticated ? (
               <>
-                <p className="px-1 text-sm text-ink-500 truncate">
-                  Вы вошли как <span className="font-medium text-ink-900">{user?.full_name || user?.email}</span>
-                </p>
+                <Link href="/analyze" onClick={close} className="block px-1 text-sm text-ink-500 truncate">
+                  Вы вошли как <span className="font-medium text-ink-900 hover:underline">{user?.full_name || user?.email}</span>
+                </Link>
                 <button
                   onClick={() => { close(); logout(); }}
                   className="w-full px-4 py-2.5 text-sm font-medium text-ink-700 border border-ink-200 rounded-lg hover:bg-ink-100 transition"
