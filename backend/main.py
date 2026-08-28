@@ -25,7 +25,7 @@ from services.access import (
 from services.payments import TARIFFS, create_payment, apply_payment
 from database import get_db, Report, User
 from encryption_utils import encrypt_data, decrypt_data
-from auth import get_password_hash, verify_password, create_access_token, decode_access_token, get_user_from_token, security
+from auth import get_password_hash, verify_password, needs_rehash, create_access_token, decode_access_token, get_user_from_token, security
 
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 
@@ -40,20 +40,34 @@ FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3000")
 # ПРИЛОЖЕНИЕ
 app = FastAPI(title="AI Compliance SaaS")
 
-# РУЧНОЙ КОНТРОЛЬ CORS
+# РУЧНОЙ КОНТРОЛЬ CORS — раньше был "*" (любой сайт в интернете мог слать
+# запросы к API из браузера пользователя); список ограничен явно известными
+# origin'ами вместо звёздочки.
+ALLOWED_ORIGINS = {
+    FRONTEND_URL,
+    "https://www.ai-compliance.online",
+    "https://ai-compliance.online",
+    "http://localhost:3000",
+}
+
 @app.middleware("http")
 async def cors_middleware(request: Request, call_next):
+    origin = request.headers.get("origin")
+    allow_origin = origin if origin in ALLOWED_ORIGINS else None
+
     if request.method == "OPTIONS":
         response = JSONResponse(content={"message": "OK"})
-        response.headers["Access-Control-Allow-Origin"] = "*"
+        if allow_origin:
+            response.headers["Access-Control-Allow-Origin"] = allow_origin
+            response.headers["Access-Control-Allow-Credentials"] = "true"
         response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
         response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, Accept"
-        response.headers["Access-Control-Allow-Credentials"] = "true"
         return response
 
     response = await call_next(request)
-    response.headers["Access-Control-Allow-Origin"] = "*"
-    response.headers["Access-Control-Allow-Credentials"] = "true"
+    if allow_origin:
+        response.headers["Access-Control-Allow-Origin"] = allow_origin
+        response.headers["Access-Control-Allow-Credentials"] = "true"
     return response
 
 # МОДЕЛИ ДЛЯ АВТОРИЗАЦИИ
@@ -113,7 +127,11 @@ async def login_user(user_data: UserLogin, db: Session = Depends(get_db)):
     
     if not verify_password(user_data.password, user.hashed_password):
         raise HTTPException(status_code=401, detail="Неверный email или пароль")
-    
+
+    if needs_rehash(user.hashed_password):
+        user.hashed_password = get_password_hash(user_data.password)
+        db.commit()
+
     access_token = create_access_token(data={"sub": str(user.id), "email": user.email})
     
     return {

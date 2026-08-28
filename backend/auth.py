@@ -1,7 +1,7 @@
 
 from datetime import datetime, timedelta
 from jose import JWTError, jwt
-from passlib.context import CryptContext
+import bcrypt
 from dotenv import load_dotenv
 from fastapi import HTTPException, status, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
@@ -12,17 +12,51 @@ import os
 
 load_dotenv()
 
-SECRET_KEY = os.getenv('SECRET_KEY', 'supersecretkey1234567890')
+SECRET_KEY = os.getenv('SECRET_KEY')
+if not SECRET_KEY:
+    raise RuntimeError(
+        "SECRET_KEY не задан в .env — сгенерируйте случайную строку (например, "
+        "`python3 -c \"import secrets; print(secrets.token_urlsafe(32))\"`) и добавьте "
+        "в .env. Без этого JWT-токены подписывались бы известным всем значением."
+    )
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24
 
 security = HTTPBearer()
 
+# bcrypt (напрямую, без passlib — passlib 1.7.4 не обновлялась с 2020 и не
+# совместима с bcrypt 4+, там свой сломанный self-test при инициализации).
+# Пароли новых пользователей и всех, кто перелогинится, хешируются bcrypt;
+# старые пароли (до этого фикса) были на голом SHA-256 без соли —
+# verify_password распознаёт старый формат по длине/алфавиту и один раз
+# перехеширует в bcrypt прямо при следующем успешном логине (см. main.py:
+# login_user), так что никто не вылетает из аккаунта.
+# bcrypt поддерживает пароль не длиннее 72 байт — обрезаем на входе, как
+# рекомендует сама библиотека, вместо падения на длинных паролях.
+BCRYPT_MAX_BYTES = 72
+
+
 def get_password_hash(password: str) -> str:
-    return hashlib.sha256(password.encode()).hexdigest()
+    pw_bytes = password.encode("utf-8")[:BCRYPT_MAX_BYTES]
+    return bcrypt.hashpw(pw_bytes, bcrypt.gensalt()).decode("utf-8")
+
+
+def _is_legacy_sha256_hash(hashed_password: str) -> bool:
+    return len(hashed_password) == 64 and all(c in "0123456789abcdef" for c in hashed_password.lower())
+
+
+def needs_rehash(hashed_password: str) -> bool:
+    return _is_legacy_sha256_hash(hashed_password)
+
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    return get_password_hash(plain_password) == hashed_password
+    if _is_legacy_sha256_hash(hashed_password):
+        return hashlib.sha256(plain_password.encode()).hexdigest() == hashed_password
+    try:
+        pw_bytes = plain_password.encode("utf-8")[:BCRYPT_MAX_BYTES]
+        return bcrypt.checkpw(pw_bytes, hashed_password.encode("utf-8"))
+    except ValueError:
+        return False
 
 def create_access_token(data: dict) -> str:
     to_encode = data.copy()
