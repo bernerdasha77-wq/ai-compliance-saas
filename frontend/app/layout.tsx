@@ -7,9 +7,19 @@ import AuthModal from './components/AuthModal';
 
 const inter = Inter({ subsets: ['latin', 'cyrillic'] });
 
+const DESCRIPTION = 'AI-проверка документов на риски и соответствие 152-ФЗ, GDPR, ISO 27001 и NIS2 за минуты';
+
 export const metadata: Metadata = {
   title: 'AI Compliance Checker',
-  description: 'Проверка договоров на соответствие требованиям кибербезопасности',
+  description: DESCRIPTION,
+  openGraph: {
+    title: 'AI Compliance Checker',
+    description: DESCRIPTION,
+    url: 'https://www.ai-compliance.online',
+    siteName: 'AI Compliance Checker',
+    locale: 'ru_RU',
+    type: 'website',
+  },
 };
 
 export default function RootLayout({
