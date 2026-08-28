@@ -103,7 +103,7 @@ export default function LandingPage() {
             <ProgressBar label="NIS2" value={73} />
           </div>
           <Link
-            href="/standards"
+            href="/example-report"
             className="inline-block mt-6 text-sm font-medium text-brand hover:text-brand-hover transition"
           >
             Посмотреть пример отчёта →
