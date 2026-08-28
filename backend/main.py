@@ -6,7 +6,7 @@ import sys
 import io
 import json
 from datetime import datetime
-from fastapi import FastAPI, UploadFile, File, HTTPException, Depends, status, Header, Request
+from fastapi import FastAPI, UploadFile, File, HTTPException, Depends, status, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
@@ -47,7 +47,7 @@ async def cors_middleware(request: Request, call_next):
         response = JSONResponse(content={"message": "OK"})
         response.headers["Access-Control-Allow-Origin"] = "*"
         response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
-        response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, Accept, X-Admin-Email"
+        response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, Accept"
         response.headers["Access-Control-Allow-Credentials"] = "true"
         return response
 
@@ -260,11 +260,17 @@ async def payments_webhook(request: Request):
 
 # ПОЛУЧЕНИЕ ОТЧЁТОВ
 @app.get("/api/reports/{report_id}")
-async def get_report(report_id: int, db: Session = Depends(get_db)):
+async def get_report(report_id: int, db: Session = Depends(get_db), token: str = Depends(security)):
+    user = await get_user_from_token(token, db)
+    if not user:
+        raise HTTPException(status_code=401, detail="Неверный токен")
+
     report = db.query(Report).filter(Report.id == report_id).first()
-    if not report:
+    # 404 и для несуществующего, и для чужого отчёта — иначе по коду ответа
+    # можно было бы угадывать, какие ID вообще существуют у других людей.
+    if not report or (report.user_id != user.id and user.email != ADMIN_EMAIL):
         raise HTTPException(status_code=404, detail="Отчёт не найден")
-    
+
     return {
         "id": report.id,
         "file_name": report.file_name,
@@ -276,7 +282,13 @@ async def get_report(report_id: int, db: Session = Depends(get_db)):
     }
 
 @app.get("/api/reports/user/{user_id}")
-async def get_user_reports(user_id: int, db: Session = Depends(get_db)):
+async def get_user_reports(user_id: int, db: Session = Depends(get_db), token: str = Depends(security)):
+    user = await get_user_from_token(token, db)
+    if not user:
+        raise HTTPException(status_code=401, detail="Неверный токен")
+    if user_id != user.id and user.email != ADMIN_EMAIL:
+        raise HTTPException(status_code=403, detail="Доступ запрещён")
+
     reports = db.query(Report).filter(Report.user_id == user_id).all()
     return [
         {
@@ -288,28 +300,21 @@ async def get_user_reports(user_id: int, db: Session = Depends(get_db)):
         for r in reports
     ]
 
-@app.get("/api/users")
-async def get_users(db: Session = Depends(get_db)):
-    users = db.query(User).all()
-    return [
-        {
-            "id": u.id,
-            "email": u.email,
-            "full_name": u.full_name,
-            "created_at": u.created_at.isoformat()
-        }
-        for u in users
-    ]
-
 # АДМИН-ПАНЕЛЬ
-@app.get("/api/admin/users")
-async def get_all_users(
-    x_admin_email: str = Header(...),
-    db: Session = Depends(get_db)
-):
-    if x_admin_email != ADMIN_EMAIL:
+# Раньше "проверкой" был заголовок X-Admin-Email, который клиент выставляет
+# сам — при этом сам admin-email открыто лежит в этом же публичном репо.
+# Теперь админ-доступ определяется email'ом из подписанного JWT, а не тем,
+# что клиент написал в заголовке.
+async def require_admin(db: Session, token: str) -> User:
+    user = await get_user_from_token(token, db)
+    if not user or user.email != ADMIN_EMAIL:
         raise HTTPException(status_code=403, detail="Доступ запрещён")
-    
+    return user
+
+@app.get("/api/admin/users")
+async def get_all_users(db: Session = Depends(get_db), token: str = Depends(security)):
+    await require_admin(db, token)
+
     users = db.query(User).all()
     result = []
     for user in users:
@@ -325,13 +330,9 @@ async def get_all_users(
     return result
 
 @app.get("/api/admin/reports")
-async def get_all_reports(
-    x_admin_email: str = Header(...),
-    db: Session = Depends(get_db)
-):
-    if x_admin_email != ADMIN_EMAIL:
-        raise HTTPException(status_code=403, detail="Доступ запрещён")
-    
+async def get_all_reports(db: Session = Depends(get_db), token: str = Depends(security)):
+    await require_admin(db, token)
+
     reports = db.query(Report).order_by(Report.created_at.desc()).limit(50).all()
     result = []
     for report in reports:
@@ -347,13 +348,9 @@ async def get_all_reports(
     return result
 
 @app.get("/api/admin/stats")
-async def get_stats(
-    x_admin_email: str = Header(...),
-    db: Session = Depends(get_db)
-):
-    if x_admin_email != ADMIN_EMAIL:
-        raise HTTPException(status_code=403, detail="Доступ запрещён")
-    
+async def get_stats(db: Session = Depends(get_db), token: str = Depends(security)):
+    await require_admin(db, token)
+
     total_users = db.query(User).count()
     total_reports = db.query(Report).count()
     active_users = db.query(User).filter(User.is_active == 1).count()

@@ -29,7 +29,7 @@ export default function AdminPage() {
 
     const fetchData = async () => {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://ai-compliance-saas-6nz5.onrender.com';
-      const headers = { Authorization: `Bearer ${token}`, 'X-Admin-Email': user.email };
+      const headers = { Authorization: `Bearer ${token}` };
 
       try {
         const [usersRes, reportsRes, statsRes] = await Promise.all([
