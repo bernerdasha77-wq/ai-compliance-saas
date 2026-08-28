@@ -27,7 +27,7 @@ function Footer() {
 
 export default function AppLayout({ children }: { children: ReactNode }) {
   return (
-    <div className="flex min-h-screen bg-white">
+    <div className="flex flex-col md:flex-row min-h-screen bg-white">
       <Sidebar />
       <div className="flex-1 flex flex-col min-w-0">
         <main className="flex-1">{children}</main>

@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '../lib/auth-context';
@@ -9,6 +10,8 @@ import {
   IconFileText,
   IconSmartphone,
   IconLock,
+  IconMenu,
+  IconX,
 } from './icons';
 
 const PRODUCT_ITEMS = [
@@ -29,14 +32,18 @@ export default function MarketingNavbar() {
   const pathname = usePathname();
   const isHome = pathname === '/';
   const { openAuth } = useAuth();
+  const [isOpen, setIsOpen] = useState(false);
+  const close = () => setIsOpen(false);
 
   const handleLogoClick = () => {
     if (isHome) {
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
+    close();
   };
 
   return (
+    <>
     <header className="sticky top-0 z-40 bg-white/90 backdrop-blur border-b border-ink-100">
       <div className="max-w-6xl mx-auto px-6 sm:px-10 h-16 flex items-center justify-between gap-6">
         <Link href="/" onClick={handleLogoClick} className="flex items-center gap-2.5 shrink-0">
@@ -92,7 +99,7 @@ export default function MarketingNavbar() {
           </Link>
         </nav>
 
-        <div className="flex items-center gap-3 shrink-0">
+        <div className="hidden md:flex items-center gap-3 shrink-0">
           <button
             onClick={openAuth}
             className="text-sm font-medium text-ink-700 hover:text-ink-900 transition"
@@ -106,7 +113,94 @@ export default function MarketingNavbar() {
             Проверить документ
           </Link>
         </div>
+
+        <button
+          onClick={() => setIsOpen(true)}
+          aria-label="Открыть меню"
+          className="md:hidden p-2 -mr-2 text-ink-700 shrink-0"
+        >
+          <IconMenu className="w-6 h-6" />
+        </button>
       </div>
     </header>
+
+      {/* Мобильное меню — вне <header>, т.к. backdrop-blur создаёт containing
+          block для position:fixed и схлопывает панель до высоты хедера. */}
+      <div
+        className={`md:hidden fixed inset-0 z-50 transition-opacity duration-200 ${
+          isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+        }`}
+      >
+        <div className="fixed inset-0 bg-black/40" onClick={close} />
+        <div
+          className={`absolute right-0 top-0 h-full w-72 max-w-[85vw] bg-white shadow-card-hover flex flex-col overflow-y-auto transition-transform duration-200 ${
+            isOpen ? 'translate-x-0' : 'translate-x-full'
+          }`}
+        >
+          <div className="flex items-center justify-between h-16 px-5 border-b border-ink-100 shrink-0">
+            <span className="font-semibold text-ink-900">Меню</span>
+            <button onClick={close} aria-label="Закрыть меню" className="p-1 text-ink-500 hover:text-ink-900">
+              <IconX className="w-5 h-5" />
+            </button>
+          </div>
+          <div className="flex-1 px-3 py-4 space-y-1 text-sm font-medium text-ink-700">
+            <p className="px-3 pt-1 pb-1 text-xs font-semibold text-ink-400 uppercase tracking-wide">Продукт</p>
+            {PRODUCT_ITEMS.map((item) => {
+              const Icon = item.icon;
+              return (
+                <Link
+                  key={item.label}
+                  href={item.href}
+                  onClick={close}
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-ink-100 transition"
+                >
+                  <Icon className="w-[18px] h-[18px] text-brand shrink-0" />
+                  <span className="text-ink-900">{item.label}</span>
+                </Link>
+              );
+            })}
+
+            <div className="h-px bg-ink-100 my-2" />
+
+            {ANCHOR_LINKS.map((link) =>
+              isHome ? (
+                <a key={link.anchor} href={`#${link.anchor}`} onClick={close} className="block px-3 py-2.5 rounded-lg hover:bg-ink-100 transition">
+                  {link.label}
+                </a>
+              ) : (
+                <Link key={link.anchor} href={`/#${link.anchor}`} onClick={close} className="block px-3 py-2.5 rounded-lg hover:bg-ink-100 transition">
+                  {link.label}
+                </Link>
+              )
+            )}
+            <Link href="/standards" onClick={close} className="block px-3 py-2.5 rounded-lg hover:bg-ink-100 transition">
+              Стандарты
+            </Link>
+            <Link href="/pricing" onClick={close} className="block px-3 py-2.5 rounded-lg hover:bg-ink-100 transition">
+              Тарифы
+            </Link>
+            <Link href="/about" onClick={close} className="block px-3 py-2.5 rounded-lg hover:bg-ink-100 transition">
+              О нас
+            </Link>
+          </div>
+
+          <div className="p-4 border-t border-ink-100 space-y-2 shrink-0">
+            <button
+              onClick={() => { close(); openAuth(); }}
+              className="w-full px-4 py-2.5 text-sm font-medium text-ink-700 border border-ink-200 rounded-lg hover:bg-ink-100 transition"
+            >
+              Войти
+            </button>
+            <Link
+              href="/analyze"
+              onClick={close}
+              className="block w-full text-center px-4 py-2.5 bg-brand text-white text-sm font-semibold rounded-lg hover:bg-brand-hover transition"
+            >
+              Проверить документ
+            </Link>
+          </div>
+        </div>
+      </div>
+    </>
   );
 }
