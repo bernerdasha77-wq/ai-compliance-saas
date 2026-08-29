@@ -5,6 +5,7 @@ import os
 import sys
 import io
 import json
+import asyncio
 from datetime import datetime
 from fastapi import FastAPI, UploadFile, File, HTTPException, Depends, status, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -255,7 +256,10 @@ async def create_payment_endpoint(tariff: str, db: Session = Depends(get_db), to
     if tariff not in TARIFFS:
         raise HTTPException(status_code=400, detail="Неизвестный тариф")
 
-    result = create_payment(user, tariff, return_url=f"{FRONTEND_URL}/payment-result")
+    # to_thread: yookassa-sdk синхронный, .create() — блокирующий HTTP-запрос;
+    # без этого он блокировал бы event loop так же, как раньше блокировал
+    # DeepSeek (см. services/deepseek_client.py).
+    result = await asyncio.to_thread(create_payment, user, tariff, f"{FRONTEND_URL}/payment-result")
     return result
 
 # Вебхук ЮKassa — вызывается сервером ЮKassa, не залогиненным пользователем,
@@ -266,7 +270,7 @@ async def payments_webhook(request: Request):
     body = await request.json()
     payment_id = body.get("object", {}).get("id")
     if payment_id:
-        apply_payment(payment_id)
+        await asyncio.to_thread(apply_payment, payment_id)
     return {"status": "ok"}
 
 # ПОЛУЧЕНИЕ ОТЧЁТОВ
