@@ -1,4 +1,21 @@
+import type { Metadata } from 'next';
 import Card from '../../components/ui/Card';
+
+const TITLE = 'О нас — AI Compliance Checker';
+const DESCRIPTION =
+  'AI Compliance Checker экономит время на первичной проверке договоров, EULA и политик конфиденциальности на соответствие 152-ФЗ, GDPR, ISO 27001 и NIS2.';
+
+export const metadata: Metadata = {
+  title: TITLE,
+  description: DESCRIPTION,
+  openGraph: {
+    title: TITLE,
+    description: DESCRIPTION,
+    url: '/about',
+    type: 'website',
+    locale: 'ru_RU',
+  },
+};
 
 export default function AboutPage() {
   return (

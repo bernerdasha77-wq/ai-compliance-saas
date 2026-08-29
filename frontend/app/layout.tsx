@@ -10,6 +10,7 @@ const inter = Inter({ subsets: ['latin', 'cyrillic'] });
 const DESCRIPTION = 'AI-проверка документов на риски и соответствие 152-ФЗ, GDPR, ISO 27001 и NIS2 за минуты';
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://www.ai-compliance.online'),
   title: 'AI Compliance Checker',
   description: DESCRIPTION,
   openGraph: {

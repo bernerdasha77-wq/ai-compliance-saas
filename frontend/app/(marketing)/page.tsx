@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import Card from '../components/ui/Card';
 import ProgressBar from '../components/ui/ProgressBar';
@@ -10,6 +11,22 @@ import {
   IconKey,
   IconGlobe,
 } from '../components/icons';
+
+const TITLE = 'AI Compliance Checker — проверка договоров на соответствие 152-ФЗ, GDPR, ISO 27001';
+const DESCRIPTION =
+  'AI-анализ договоров, EULA и политик конфиденциальности на соответствие 152-ФЗ, GDPR, ISO 27001 и NIS2. Найдите риски и получите готовые формулировки для исправления за пару минут.';
+
+export const metadata: Metadata = {
+  title: TITLE,
+  description: DESCRIPTION,
+  openGraph: {
+    title: TITLE,
+    description: DESCRIPTION,
+    url: '/',
+    type: 'website',
+    locale: 'ru_RU',
+  },
+};
 
 const steps = [
   { icon: IconUpload, title: 'Загрузите документ', text: 'PDF или DOCX — договор, EULA или политику конфиденциальности' },

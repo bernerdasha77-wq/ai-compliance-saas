@@ -1,5 +1,21 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import Card from '../../components/ui/Card';
+
+const TITLE = 'Публичная оферта — AI Compliance Checker';
+const DESCRIPTION = 'Условия предоставления доступа к сервису AI Compliance Checker.';
+
+export const metadata: Metadata = {
+  title: TITLE,
+  description: DESCRIPTION,
+  openGraph: {
+    title: TITLE,
+    description: DESCRIPTION,
+    url: '/offer',
+    type: 'website',
+    locale: 'ru_RU',
+  },
+};
 
 export default function OfferPage() {
   return (

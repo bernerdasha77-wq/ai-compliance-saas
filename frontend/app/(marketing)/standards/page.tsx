@@ -1,5 +1,22 @@
+import type { Metadata } from 'next';
 import Card from '../../components/ui/Card';
 import { IconAlertTriangle } from '../../components/icons';
+
+const TITLE = 'Штрафы по 152-ФЗ, GDPR, NIS2, ISO 27001 — проверка документов на соответствие';
+const DESCRIPTION =
+  'Утечка данных по 152-ФЗ — до 15 млн ₽, по GDPR — до €20 млн. Узнайте, каким законам и стандартам должен соответствовать ваш договор или политика конфиденциальности.';
+
+export const metadata: Metadata = {
+  title: TITLE,
+  description: DESCRIPTION,
+  openGraph: {
+    title: TITLE,
+    description: DESCRIPTION,
+    url: '/standards',
+    type: 'website',
+    locale: 'ru_RU',
+  },
+};
 
 function StandardBadge({ variant }: { variant: 'official' | 'approximate' }) {
   const isOfficial = variant === 'official';
