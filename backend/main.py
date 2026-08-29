@@ -19,8 +19,8 @@ from services.access import (
     can_run_check,
     consume_check,
     should_return_full_report,
-    checks_remaining,
     strip_violation_details,
+    account_status,
 )
 from services.payments import TARIFFS, create_payment, apply_payment
 from database import get_db, Report, User
@@ -228,9 +228,7 @@ async def analyze_contract_endpoint(
             "checklist": checklist,
             "risk_level": risk_level,
             "is_full_report": is_full,
-            "checks_used": user.free_checks_used,
-            "checks_remaining": checks_remaining(user),
-            "checks_limit": FREE_CHECKS_LIMIT,
+            "account": account_status(user),
             "created_at": report.created_at.isoformat()
         }
 
@@ -246,12 +244,7 @@ async def get_usage(db = Depends(get_db), token: str = Depends(security)):
     if not user:
         raise HTTPException(status_code=401, detail="Неверный токен")
 
-    return {
-        "plan": user.plan,
-        "checks_used": user.free_checks_used,
-        "checks_remaining": checks_remaining(user),
-        "checks_limit": FREE_CHECKS_LIMIT,
-    }
+    return account_status(user)
 
 # ОПЛАТА (ЮKassa)
 @app.post("/api/payments/create")

@@ -98,6 +98,35 @@ def should_return_full_report(user) -> bool:
     return is_first_free_check(user)
 
 
+def account_status(user) -> dict:
+    """Сводка статуса аккаунта для /api/usage — источник данных для блока
+    "личный кабинет" на странице анализа (frontend: AccountStatus.tsx).
+    Возвращает разные поля в зависимости от "kind", а не один плоский набор
+    полей на все случаи — раньше /api/usage всегда отдавал free_checks_used
+    независимо от реального источника лимита, что было неверно для
+    подписки/разовых кредитов.
+    """
+    if _is_admin(user):
+        return {"kind": "admin"}
+    if user.plan == "paid":
+        return {"kind": "unlimited"}
+    if _subscription_active(user):
+        return {
+            "kind": "subscription",
+            "plan": user.plan,
+            "checks_used": user.period_checks_used,
+            "checks_limit": PLAN_LIMITS[user.plan],
+            "expires_at": user.plan_expires_at.isoformat(),
+        }
+    if user.one_time_credits > 0:
+        return {"kind": "one_time", "credits": user.one_time_credits}
+    return {
+        "kind": "free",
+        "checks_used": user.free_checks_used,
+        "checks_limit": FREE_CHECKS_LIMIT,
+    }
+
+
 def strip_violation_details(analysis: dict) -> dict:
     """Возвращает урезанную копию анализа для превью-отчёта: score и
     сводка по стандартам остаются как есть (это то, что должно "зацепить"

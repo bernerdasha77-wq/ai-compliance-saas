@@ -22,21 +22,86 @@ const docTypes = [
   { id: 'privacy', title: 'Политика конфиденциальности', icon: IconLock, hint: 'Проверим сбор данных, согласия пользователей и передачу информации третьим лицам' },
 ];
 
+type AccountStatus =
+  | { kind: 'admin' }
+  | { kind: 'unlimited' }
+  | { kind: 'subscription'; plan: string; checks_used: number; checks_limit: number; expires_at: string }
+  | { kind: 'one_time'; credits: number }
+  | { kind: 'free'; checks_used: number; checks_limit: number };
+
 interface AnalyzeResponse {
   status: string;
   report_id: number;
   analysis: AnalysisResult;
   is_full_report: boolean;
-  checks_used: number;
-  checks_remaining: number | null;
-  checks_limit: number;
+  account: AccountStatus;
 }
 
-interface UsageInfo {
-  plan: string;
-  checks_used: number;
-  checks_remaining: number | null;
-  checks_limit: number;
+const PLAN_NAMES: Record<string, string> = { basic: 'Базовая подписка', pro: 'Pro подписка' };
+
+function AccountStatusCard({ account }: { account: AccountStatus }) {
+  if (account.kind === 'admin') {
+    return (
+      <Card className="p-4 mb-6 flex items-center justify-between gap-4 flex-wrap">
+        <p className="text-sm font-medium text-ink-900">Админ-доступ</p>
+        <span className="text-xs text-ink-500">Без ограничений</span>
+      </Card>
+    );
+  }
+
+  if (account.kind === 'unlimited') {
+    return (
+      <Card className="p-4 mb-6">
+        <p className="text-sm font-medium text-ink-900">Безлимитный доступ</p>
+      </Card>
+    );
+  }
+
+  if (account.kind === 'subscription') {
+    const expiresDate = new Date(account.expires_at);
+    const daysLeft = Math.ceil((expiresDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+    const expiringSoon = daysLeft <= 5;
+    return (
+      <Card className={`p-4 mb-6 flex items-center justify-between gap-4 flex-wrap ${expiringSoon ? 'border-risk-medium-border bg-risk-medium-bg' : ''}`}>
+        <div>
+          <p className="text-sm font-medium text-ink-900">{PLAN_NAMES[account.plan] || account.plan}</p>
+          <p className="text-xs text-ink-500">
+            Осталось {Math.max(0, account.checks_limit - account.checks_used)} из {account.checks_limit} проверок ·
+            действует до {expiresDate.toLocaleDateString('ru-RU')}
+            {expiringSoon && ' — скоро закончится, автопродления нет'}
+          </p>
+        </div>
+        <Link href="/pricing" className="text-sm font-medium text-brand hover:text-brand-hover transition whitespace-nowrap">
+          Продлить →
+        </Link>
+      </Card>
+    );
+  }
+
+  if (account.kind === 'one_time') {
+    return (
+      <Card className="p-4 mb-6 flex items-center justify-between gap-4 flex-wrap">
+        <p className="text-sm font-medium text-ink-900">Доступен разовый отчёт: {account.credits}</p>
+        <Link href="/pricing" className="text-sm font-medium text-brand hover:text-brand-hover transition">
+          Все тарифы →
+        </Link>
+      </Card>
+    );
+  }
+
+  return (
+    <Card className="p-4 mb-6 flex items-center justify-between gap-4 flex-wrap">
+      <div>
+        <p className="text-sm font-medium text-ink-900">Бесплатный тариф</p>
+        <p className="text-xs text-ink-500">
+          Осталось {Math.max(0, account.checks_limit - account.checks_used)} из {account.checks_limit} проверок
+        </p>
+      </div>
+      <Link href="/pricing" className="text-sm font-medium text-brand hover:text-brand-hover transition">
+        Тарифы →
+      </Link>
+    </Card>
+  );
 }
 
 export default function Home() {
@@ -48,7 +113,7 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
   const [limitReached, setLimitReached] = useState(false);
   const [docType, setDocType] = useState('contract');
-  const [usage, setUsage] = useState<UsageInfo | null>(null);
+  const [account, setAccount] = useState<AccountStatus | null>(null);
   const progressTimer = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const stopProgress = () => {
@@ -72,13 +137,13 @@ export default function Home() {
 
   useEffect(() => {
     if (!token) {
-      setUsage(null);
+      setAccount(null);
       return;
     }
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://ai-compliance-saas-6nz5.onrender.com';
     fetch(`${apiUrl}/api/usage`, { headers: { Authorization: `Bearer ${token}` } })
       .then((res) => (res.ok ? res.json() : null))
-      .then((data) => data && setUsage(data))
+      .then((data) => data && setAccount(data))
       .catch(() => {});
   }, [token]);
 
@@ -146,12 +211,7 @@ export default function Home() {
       const data = await response.json();
       setProgress(100);
       setResult(data);
-      setUsage({
-        plan: data.checks_remaining === null ? 'paid' : 'free',
-        checks_used: data.checks_used,
-        checks_remaining: data.checks_remaining,
-        checks_limit: data.checks_limit,
-      });
+      setAccount(data.account);
     } catch (err: any) {
       setError(err.message || 'Произошла ошибка');
     } finally {
@@ -162,21 +222,14 @@ export default function Home() {
 
   return (
     <div className="max-w-4xl mx-auto px-6 sm:px-10 py-10">
-      <div className="mb-8">
-        <div className="flex items-start justify-between gap-4 flex-wrap">
-          <div>
-            <h1 className="text-2xl font-bold text-ink-900 mb-1.5">Проверка документа</h1>
-            <p className="text-ink-500">
-              AI оценит риски, найдёт нарушения и предложит готовые формулировки
-            </p>
-          </div>
-          {usage && usage.checks_remaining !== null && (
-            <span className="text-xs font-medium text-ink-500 bg-ink-100 px-3 py-1.5 rounded-pill whitespace-nowrap">
-              Бесплатных проверок осталось: {usage.checks_remaining} из {usage.checks_limit}
-            </span>
-          )}
-        </div>
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-ink-900 mb-1.5">Проверка документа</h1>
+        <p className="text-ink-500">
+          AI оценит риски, найдёт нарушения и предложит готовые формулировки
+        </p>
       </div>
+
+      {account && <AccountStatusCard account={account} />}
 
       <div className="mb-6">
         <p className="text-sm font-medium text-ink-700 mb-3">Тип документа</p>
@@ -298,7 +351,10 @@ export default function Home() {
           </div>
 
           {!result.is_full_report && (
-            <UpsellCard variant="teaser" checksRemaining={result.checks_remaining ?? undefined} />
+            <UpsellCard
+              variant="teaser"
+              checksRemaining={result.account.kind === 'free' ? Math.max(0, result.account.checks_limit - result.account.checks_used) : undefined}
+            />
           )}
 
           {result.is_full_report && result.analysis.action_checklist?.length > 0 && (
