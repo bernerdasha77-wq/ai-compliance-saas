@@ -97,7 +97,7 @@ export default function PricingPage() {
               <IconCheck className="w-4 h-4 text-risk-low shrink-0 mt-0.5" /> Сохранение истории
             </li>
             <li className="flex items-start gap-2 text-sm text-ink-700">
-              <IconCheck className="w-4 h-4 text-risk-low shrink-0 mt-0.5" /> Отмена в любой момент
+              <IconCheck className="w-4 h-4 text-risk-low shrink-0 mt-0.5" /> Без автопродления — платите только когда нужно
             </li>
           </ul>
 
@@ -133,7 +133,7 @@ export default function PricingPage() {
               <IconCheck className="w-4 h-4 text-risk-low shrink-0 mt-0.5" /> Приоритетная поддержка
             </li>
             <li className="flex items-start gap-2 text-sm text-ink-700">
-              <IconCheck className="w-4 h-4 text-risk-low shrink-0 mt-0.5" /> Отмена в любой момент
+              <IconCheck className="w-4 h-4 text-risk-low shrink-0 mt-0.5" /> Без автопродления — платите только когда нужно
             </li>
           </ul>
 
@@ -152,7 +152,7 @@ export default function PricingPage() {
       )}
 
       <div className="text-center mt-10 text-sm text-ink-500">
-        Оплата через ЮKassa. Разовая покупка не продлевается автоматически, подписки — продлеваются ежемесячно.
+        Оплата через ЮKassa. Ни разовая покупка, ни подписка не продлеваются автоматически — подписка действует 30 дней, для продолжения нужна повторная оплата.
         <br />
         <Link href="/offer" className="text-brand hover:text-brand-hover">
           Публичная оферта
