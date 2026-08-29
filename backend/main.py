@@ -265,9 +265,19 @@ async def create_payment_endpoint(tariff: str, db: Session = Depends(get_db), to
 # Вебхук ЮKassa — вызывается сервером ЮKassa, не залогиненным пользователем,
 # поэтому без Depends(security). Статусу из тела запроса не доверяем — см.
 # services/payments.py:apply_payment (переспрашивает статус у самой ЮKassa).
+@app.get("/api/payments/webhook")
+async def payments_webhook_ping():
+    return {"status": "ok"}
+
 @app.post("/api/payments/webhook")
 async def payments_webhook(request: Request):
-    body = await request.json()
+    # Никогда не 500'им сюда: пустое тело, невалидный JSON или проверочный
+    # пинг от ЮKassa/панели не должны выглядеть как сбой на нашей стороне.
+    try:
+        body = await request.json()
+    except Exception:
+        return {"status": "ok"}
+
     payment_id = body.get("object", {}).get("id")
     if payment_id:
         await asyncio.to_thread(apply_payment, payment_id)
