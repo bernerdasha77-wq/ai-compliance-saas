@@ -14,6 +14,9 @@ export default function MarketingFooter() {
             <Link href="/blog" className="hover:text-ink-900 transition">
               Блог
             </Link>
+            <Link href="/faq" className="hover:text-ink-900 transition">
+              FAQ
+            </Link>
             <Link href="/offer" className="hover:text-ink-900 transition">
               Публичная оферта
             </Link>
