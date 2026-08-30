@@ -6,7 +6,6 @@
 # цитировал реальный текст закона вместо номеров статей по памяти.
 
 from pgvector.psycopg2 import register_vector
-from sentence_transformers import SentenceTransformer
 
 from database import engine
 
@@ -28,14 +27,47 @@ CROSS_LINGUAL_TOP_K = 8
 # дублировать этот список ещё и в prompts.py.
 INDEXED_LAWS = RU_LAWS | {"GDPR", "NIS2"}
 
-_model: SentenceTransformer | None = None
+# query_text здесь всегда один из фиксированных focus_points (DOC_CONFIGS в
+# services/prompts.py) — не зависит от содержимого загруженного документа
+# (см. build_prompt() в prompts.py, вызывающий search_relevant_chunks() по
+# каждому focus_point отдельно). Раньше это означало держать в рабочем
+# процессе модель sentence-transformers ради инференса на лету — теперь
+# эмбеддинги предвычислены офлайн (scripts/precompute_focus_embeddings.py) и
+# просто читаются из focus_point_embeddings. Таблица маленькая (по одной
+# строке на focus_point, не на документ) — грузим её всю в память лениво,
+# один раз на процесс, вместо похода в БД на каждый вызов.
+_focus_embeddings: dict[tuple[str, str], list[float]] | None = None
 
 
-def _get_model() -> SentenceTransformer:
-    global _model
-    if _model is None:
-        _model = SentenceTransformer(EMBEDDING_MODEL)
-    return _model
+def _load_focus_embeddings() -> dict[tuple[str, str], list[float]]:
+    global _focus_embeddings
+    if _focus_embeddings is None:
+        conn = engine.raw_connection()
+        try:
+            register_vector(conn)
+            cur = conn.cursor()
+            cur.execute("SELECT doc_type, focus_point, embedding FROM focus_point_embeddings")
+            _focus_embeddings = {
+                (doc_type, focus_point): embedding
+                for doc_type, focus_point, embedding in cur.fetchall()
+            }
+        finally:
+            conn.close()
+    return _focus_embeddings
+
+
+def _get_focus_embedding(doc_type: str, focus_point: str) -> list[float]:
+    embedding = _load_focus_embeddings().get((doc_type, focus_point))
+    if embedding is None:
+        # Громко, а не молча return [] — иначе кто-то отредактирует
+        # focus_points в DOC_CONFIGS, забудет перезапустить precompute-скрипт,
+        # и RAG тихо перестанет находить фрагменты закона для этого пункта,
+        # оставшись незамеченным.
+        raise RuntimeError(
+            f"Нет предвычисленного эмбеддинга для focus_point '{focus_point}' у "
+            f"doc_type '{doc_type}' — запусти scripts/precompute_focus_embeddings.py"
+        )
+    return embedding
 
 
 def _query_chunks(cur, embedding, laws: list[str], limit: int) -> list[dict]:
@@ -76,7 +108,7 @@ def search_relevant_chunks(
     ISO 27001 — он туда сознательно не индексируется), просто не дадут
     совпадений, отдельная проверка не нужна.
     """
-    embedding = _get_model().encode(query_text)
+    embedding = _get_focus_embedding(doc_type, query_text)
     ru_standards = [s for s in standards if s in RU_LAWS]
     other_standards = [s for s in standards if s not in RU_LAWS]
 
