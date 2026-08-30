@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useAuth } from './auth-context';
+import { ANALYZE_SUSPENDED, SUSPENSION_MESSAGE } from './maintenance';
 
 export type Tariff = 'one_time' | 'basic' | 'pro';
 
@@ -11,6 +12,10 @@ export function usePaymentTrigger() {
   const [error, setError] = useState<string | null>(null);
 
   const startPayment = async (tariff: Tariff) => {
+    if (ANALYZE_SUSPENDED) {
+      setError(SUSPENSION_MESSAGE);
+      return;
+    }
     if (!token) {
       openAuth();
       return;

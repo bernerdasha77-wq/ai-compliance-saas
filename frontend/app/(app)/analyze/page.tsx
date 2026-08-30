@@ -9,6 +9,7 @@ import UpsellCard from '../../components/UpsellCard';
 import { useAuth } from '../../lib/auth-context';
 import { AnalysisResult } from '../../lib/types';
 import { IconFileText, IconSmartphone, IconLock, IconUpload, IconAlertTriangle, IconHistory } from '../../components/icons';
+import { ANALYZE_SUSPENDED, SUSPENSION_MESSAGE } from '../../lib/maintenance';
 
 const PROGRESS_STEPS = [
   { until: 25, label: 'Читаем документ' },
@@ -219,6 +220,33 @@ export default function Home() {
       setLoading(false);
     }
   };
+
+  if (ANALYZE_SUSPENDED) {
+    return (
+      <div className="max-w-4xl mx-auto px-6 sm:px-10 py-10">
+        <div className="mb-6">
+          <h1 className="text-2xl font-bold text-ink-900 mb-1.5">Проверка документа</h1>
+          <p className="text-ink-500">
+            AI оценит риски, найдёт нарушения и предложит готовые формулировки
+          </p>
+        </div>
+
+        <Card className="p-6 sm:p-8 text-center border-risk-medium-border bg-risk-medium-bg">
+          <IconAlertTriangle className="w-6 h-6 text-risk-medium mx-auto mb-3" />
+          <p className="text-risk-medium font-medium">{SUSPENSION_MESSAGE}</p>
+        </Card>
+
+        <p className="mt-4 text-xs text-ink-400 flex items-center gap-1.5">
+          <IconHistory className="w-3.5 h-3.5" />
+          Уже отправляли документ раньше? Прошлые отчёты доступны в{' '}
+          <Link href="/history" className="text-brand hover:underline">
+            «Мои отчёты»
+          </Link>
+          .
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-4xl mx-auto px-6 sm:px-10 py-10">

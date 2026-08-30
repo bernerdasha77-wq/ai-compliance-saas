@@ -38,6 +38,12 @@ ADMIN_EMAIL = "bernerdasha@yandex.ru"
 # /api/payments/webhook, независимо от того, вернулся ли пользователь на сайт.
 FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3000")
 
+# Временная приостановка функции анализа (и новых платежей за неё) — см. тот
+# же флаг на фронтенде: frontend/app/lib/maintenance.ts. Переключать оба
+# синхронно при возобновлении работы.
+ANALYZE_SUSPENDED = True
+ANALYZE_SUSPENDED_MESSAGE = "Сервис временно приостановлен для технического обслуживания"
+
 # ПРИЛОЖЕНИЕ
 app = FastAPI(title="AI Compliance SaaS")
 
@@ -156,6 +162,9 @@ async def analyze_contract_endpoint(
     db = Depends(get_db),
     token: str = Depends(security)
 ):
+    if ANALYZE_SUSPENDED:
+        raise HTTPException(status_code=503, detail=ANALYZE_SUSPENDED_MESSAGE)
+
     user = await get_user_from_token(token, db)
     if not user:
         raise HTTPException(status_code=401, detail="Неверный токен")
@@ -250,6 +259,9 @@ async def get_usage(db = Depends(get_db), token: str = Depends(security)):
 # ОПЛАТА (ЮKassa)
 @app.post("/api/payments/create")
 async def create_payment_endpoint(tariff: str, db: Session = Depends(get_db), token: str = Depends(security)):
+    if ANALYZE_SUSPENDED:
+        raise HTTPException(status_code=503, detail=ANALYZE_SUSPENDED_MESSAGE)
+
     user = await get_user_from_token(token, db)
     if not user:
         raise HTTPException(status_code=401, detail="Неверный токен")

@@ -4,6 +4,7 @@ import Link from 'next/link';
 import Card from '../../components/ui/Card';
 import { IconCheck, IconX } from '../../components/icons';
 import { usePaymentTrigger } from '../../lib/payments';
+import { ANALYZE_SUSPENDED, SUSPENSION_MESSAGE } from '../../lib/maintenance';
 
 export default function PricingClient() {
   const { startPayment, loadingTariff, error } = usePaymentTrigger();
@@ -16,6 +17,12 @@ export default function PricingClient() {
           Первая проверка — всегда полный отчёт бесплатно. Дальше — платно, по вашему сценарию использования
         </p>
       </div>
+
+      {ANALYZE_SUSPENDED && (
+        <Card className="p-4 mb-8 max-w-2xl mx-auto text-center border-risk-medium-border bg-risk-medium-bg">
+          <p className="text-sm text-risk-medium">{SUSPENSION_MESSAGE}</p>
+        </Card>
+      )}
 
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
         {/* БЕСПЛАТНЫЙ ТАРИФ */}
@@ -74,10 +81,10 @@ export default function PricingClient() {
 
           <button
             onClick={() => startPayment('one_time')}
-            disabled={loadingTariff !== null}
+            disabled={loadingTariff !== null || ANALYZE_SUSPENDED}
             className="mt-6 w-full py-2.5 rounded-lg text-sm font-semibold bg-ink-900 text-white hover:bg-ink-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {loadingTariff === 'one_time' ? 'Открываем оплату...' : 'Купить отчёт'}
+            {ANALYZE_SUSPENDED ? 'Временно недоступно' : loadingTariff === 'one_time' ? 'Открываем оплату...' : 'Купить отчёт'}
           </button>
         </Card>
 
@@ -103,10 +110,10 @@ export default function PricingClient() {
 
           <button
             onClick={() => startPayment('basic')}
-            disabled={loadingTariff !== null}
+            disabled={loadingTariff !== null || ANALYZE_SUSPENDED}
             className="mt-6 w-full py-2.5 rounded-lg text-sm font-semibold bg-ink-900 text-white hover:bg-ink-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {loadingTariff === 'basic' ? 'Открываем оплату...' : 'Оформить подписку'}
+            {ANALYZE_SUSPENDED ? 'Временно недоступно' : loadingTariff === 'basic' ? 'Открываем оплату...' : 'Оформить подписку'}
           </button>
         </Card>
 
@@ -139,10 +146,10 @@ export default function PricingClient() {
 
           <button
             onClick={() => startPayment('pro')}
-            disabled={loadingTariff !== null}
+            disabled={loadingTariff !== null || ANALYZE_SUSPENDED}
             className="mt-6 w-full py-2.5 rounded-lg text-sm font-semibold bg-brand text-white hover:bg-brand-hover transition disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {loadingTariff === 'pro' ? 'Открываем оплату...' : 'Оформить подписку'}
+            {ANALYZE_SUSPENDED ? 'Временно недоступно' : loadingTariff === 'pro' ? 'Открываем оплату...' : 'Оформить подписку'}
           </button>
         </Card>
       </div>
