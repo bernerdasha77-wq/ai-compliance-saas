@@ -6,15 +6,14 @@ FROM python:3.12-slim
 WORKDIR /app
 
 # Отдельным слоем — чтобы pip install кэшировался, пока requirements.txt
-# не меняется (сборка образов при каждом деплое не будет качать заново
-# torch/sentence-transformers, если зависимости не поменялись).
+# не меняется.
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Модель эмбеддингов (~460 МБ) запекаем в образ на этапе сборки —
-# иначе первый же реальный RAG-запрос в проде долго и ненадёжно тянул бы
-# её с HuggingFace Hub на каждом холодном старте контейнера.
-RUN python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('paraphrase-multilingual-MiniLM-L12-v2')"
+# Раньше здесь запекался sentence-transformers/torch (эмбеддинги для RAG
+# считались на лету) — теперь эмбеддинги query_text предвычислены офлайн
+# и просто читаются из БД (см. services/retrieval.py, scripts/
+# precompute_focus_embeddings.py), рабочий образ модель вообще не держит.
 
 COPY . .
 

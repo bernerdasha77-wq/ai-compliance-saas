@@ -1,0 +1,8 @@
+# Зависимости ТОЛЬКО для офлайн-скриптов (scripts/ingest_laws.py,
+# scripts/precompute_focus_embeddings.py) — не деплоятся на Fly.io,
+# рабочий сервер их не устанавливает (см. requirements.txt).
+#
+# Устанавливать поверх requirements.txt:
+#   pip install -r requirements.txt -r requirements-offline.txt
+
+sentence-transformers==3.3.1
