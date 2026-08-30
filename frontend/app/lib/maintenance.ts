@@ -1,7 +1,7 @@
 // Временная приостановка функции анализа документов (и покупок за неё) —
 // см. тот же флаг на бэкенде: backend/main.py: ANALYZE_SUSPENDED.
 // Переключать оба синхронно при возобновлении работы.
-export const ANALYZE_SUSPENDED = true;
+export const ANALYZE_SUSPENDED = false;
 
 export const SUSPENSION_MESSAGE =
   'Загрузка документов временно недоступна — дорабатываем процедуру обработки данных. Вернёмся в ближайшее время.';

@@ -41,7 +41,7 @@ FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3000")
 # Временная приостановка функции анализа (и новых платежей за неё) — см. тот
 # же флаг на фронтенде: frontend/app/lib/maintenance.ts. Переключать оба
 # синхронно при возобновлении работы.
-ANALYZE_SUSPENDED = True
+ANALYZE_SUSPENDED = False
 ANALYZE_SUSPENDED_MESSAGE = "Сервис временно приостановлен для технического обслуживания"
 
 # ПРИЛОЖЕНИЕ
