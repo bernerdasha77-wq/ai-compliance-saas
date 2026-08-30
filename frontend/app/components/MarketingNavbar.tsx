@@ -91,6 +91,9 @@ export default function MarketingNavbar() {
           <Link href="/standards" className={NAV_LINK_CLASS}>
             Стандарты
           </Link>
+          <Link href="/blog" className={NAV_LINK_CLASS}>
+            Блог
+          </Link>
           <Link href="/pricing" className={NAV_LINK_CLASS}>
             Тарифы
           </Link>
@@ -192,6 +195,9 @@ export default function MarketingNavbar() {
             )}
             <Link href="/standards" onClick={close} className="block px-3 py-2.5 rounded-lg hover:bg-ink-100 transition">
               Стандарты
+            </Link>
+            <Link href="/blog" onClick={close} className="block px-3 py-2.5 rounded-lg hover:bg-ink-100 transition">
+              Блог
             </Link>
             <Link href="/pricing" onClick={close} className="block px-3 py-2.5 rounded-lg hover:bg-ink-100 transition">
               Тарифы

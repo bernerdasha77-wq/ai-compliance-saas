@@ -11,6 +11,9 @@ export default function MarketingFooter() {
             <span className="font-semibold text-sm text-ink-900">AI Compliance Checker</span>
           </div>
           <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-sm text-ink-500">
+            <Link href="/blog" className="hover:text-ink-900 transition">
+              Блог
+            </Link>
             <Link href="/offer" className="hover:text-ink-900 transition">
               Публичная оферта
             </Link>
