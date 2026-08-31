@@ -50,6 +50,20 @@ def compute_scores(violations: list[dict], standards: list[str]) -> tuple[int, s
     return overall, _risk_label(overall), standards_out
 
 
+def _normalize_suggested_wording(value) -> list[str]:
+    """suggested_wording теперь всегда list[str] на выходе — модель обычно
+    уже присылает массив (см. RESPONSE_JSON_EXAMPLE в prompts.py), но на
+    случай отклонения от формата (или старых данных) приводим сами:
+    список — берём как есть (только непустые строки), любое другое
+    непустое значение — оборачиваем в список из одного элемента, пусто/
+    отсутствует — пустой список."""
+    if isinstance(value, list):
+        return [str(item).strip() for item in value if str(item).strip()]
+    if value:
+        return [str(value).strip()]
+    return []
+
+
 def normalize_violation(raw: dict, index: int) -> dict | None:
     """Приводит одно нарушение из ответа модели к внутреннему формату.
     Возвращает None, если запись повреждена настолько, что её нельзя
@@ -71,7 +85,7 @@ def normalize_violation(raw: dict, index: int) -> dict | None:
         "description": raw.get("description", ""),
         "quote": raw.get("quote"),
         "recommendation": raw.get("recommendation", ""),
-        "suggested_wording": raw.get("suggested_wording", ""),
+        "suggested_wording": _normalize_suggested_wording(raw.get("suggested_wording")),
     }
 
 
@@ -142,7 +156,7 @@ def build_local_result(text: str, checks: list[dict]) -> dict:
                 "description": f"В документе не найдены признаки раздела «{check['name']}».",
                 "quote": None,
                 "recommendation": check["recommendation"],
-                "suggested_wording": "",
+                "suggested_wording": [],
             })
 
     score, risk_label, standards_out = compute_scores(violations, standards)

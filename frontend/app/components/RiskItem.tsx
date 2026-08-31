@@ -6,13 +6,33 @@ import RiskBadge from './ui/RiskBadge';
 import { Violation } from '../lib/types';
 import { IconLock } from './icons';
 
-export default function RiskItem({ violation }: { violation: Violation }) {
-  const [copied, setCopied] = useState(false);
+/** suggested_wording — теперь string[], но отчёты, сохранённые до этого
+ * изменения, всё ещё хранят его строкой в самом JSON с сервера — сам JSON
+ * не проверяется против TS-типов в рантайме, так что здесь принимаем более
+ * широкий тип, чем объявлено в Violation, и оборачиваем строку в массив
+ * вместо падения/пустого рендера. */
+function normalizeWording(value: string[] | string | null | undefined): string[] {
+  if (Array.isArray(value)) return value.filter((s) => s.trim());
+  if (typeof value === 'string' && value.trim()) return [value];
+  return [];
+}
 
-  const handleCopy = () => {
-    navigator.clipboard.writeText(violation.suggested_wording || '');
-    setCopied(true);
-    setTimeout(() => setCopied(false), 1500);
+export default function RiskItem({ violation }: { violation: Violation }) {
+  const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
+  const [copiedAll, setCopiedAll] = useState(false);
+
+  const wordingItems = normalizeWording(violation.suggested_wording);
+
+  const handleCopy = (text: string, index: number) => {
+    navigator.clipboard.writeText(text);
+    setCopiedIndex(index);
+    setTimeout(() => setCopiedIndex(null), 1500);
+  };
+
+  const handleCopyAll = () => {
+    navigator.clipboard.writeText(wordingItems.join('\n\n'));
+    setCopiedAll(true);
+    setTimeout(() => setCopiedAll(false), 1500);
   };
 
   return (
@@ -58,18 +78,40 @@ export default function RiskItem({ violation }: { violation: Violation }) {
             </div>
           )}
 
-          {violation.suggested_wording && (
+          {wordingItems.length > 0 && (
             <div className="bg-brand-light rounded-lg p-3 border border-brand/10">
-              <p className="text-xs text-ink-500 font-medium mb-1.5">Готовая формулировка</p>
-              <p className="text-sm text-ink-900 font-mono bg-white p-2.5 rounded border border-ink-100">
-                {violation.suggested_wording}
-              </p>
-              <button
-                onClick={handleCopy}
-                className="mt-2 text-xs font-medium text-brand hover:text-brand-hover transition"
-              >
-                {copied ? 'Скопировано' : 'Копировать'}
-              </button>
+              <div className="flex items-center justify-between gap-2 mb-1.5">
+                <p className="text-xs text-ink-500 font-medium">
+                  {wordingItems.length > 1 ? 'Готовые формулировки' : 'Готовая формулировка'}
+                </p>
+                {wordingItems.length > 1 && (
+                  <button
+                    onClick={handleCopyAll}
+                    className="text-xs font-medium text-brand hover:text-brand-hover transition shrink-0"
+                  >
+                    {copiedAll ? 'Скопировано' : 'Копировать всё'}
+                  </button>
+                )}
+              </div>
+
+              <div className="space-y-3">
+                {wordingItems.map((item, i) => (
+                  <div key={i}>
+                    {wordingItems.length > 1 && (
+                      <p className="text-xs text-ink-500 font-medium mb-1">Пункт {i + 1}</p>
+                    )}
+                    <p className="text-sm text-ink-900 font-mono bg-white p-2.5 rounded border border-ink-100">
+                      {item}
+                    </p>
+                    <button
+                      onClick={() => handleCopy(item, i)}
+                      className="mt-1.5 text-xs font-medium text-brand hover:text-brand-hover transition"
+                    >
+                      {copiedIndex === i ? 'Скопировано' : 'Копировать'}
+                    </button>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </>

@@ -9,7 +9,7 @@ export interface Violation {
   description: string | null;
   quote: string | null;
   recommendation: string | null;
-  suggested_wording: string | null;
+  suggested_wording: string[] | null;
   /** true для урезанного (превью) отчёта — деталь скрыта за оплатой */
   locked?: boolean;
 }
