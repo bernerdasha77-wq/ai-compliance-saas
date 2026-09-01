@@ -12,6 +12,13 @@ interface AuthContextValue {
   isAuthenticated: boolean;
   user: User | null;
   token: string | null;
+  /** false, пока не проверили localStorage на клиенте (сразу после монтирования
+   * token/user ещё null даже у залогиненного пользователя) — страницы,
+   * показывающие "Пожалуйста, войдите в систему" при отсутствии token,
+   * должны дождаться authReady, иначе это сообщение ошибочно мелькает (а то
+   * и залипает — см. историю: report/[id] и history не сбрасывали error
+   * при повторном срабатывании эффекта) при каждой прямой загрузке страницы. */
+  authReady: boolean;
   isAuthOpen: boolean;
   openAuth: () => void;
   closeAuth: () => void;
@@ -25,6 +32,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
+  const [authReady, setAuthReady] = useState(false);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
 
   useEffect(() => {
@@ -35,6 +43,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setToken(storedToken);
       setUser(JSON.parse(userData));
     }
+    setAuthReady(true);
   }, []);
 
   const login = (newToken: string) => {
@@ -60,6 +69,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isAuthenticated,
         user,
         token,
+        authReady,
         isAuthOpen,
         openAuth: () => setIsAuthOpen(true),
         closeAuth: () => setIsAuthOpen(false),

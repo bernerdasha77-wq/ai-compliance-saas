@@ -8,6 +8,7 @@ import ScoreSummary from '../../../components/ScoreSummary';
 import RiskList from '../../../components/RiskList';
 import RiskBadge from '../../../components/ui/RiskBadge';
 import UpsellCard from '../../../components/UpsellCard';
+import { IconAlertTriangle } from '../../../components/icons';
 import { useAuth } from '../../../lib/auth-context';
 import { AnalysisResult, RiskLevel } from '../../../lib/types';
 
@@ -23,13 +24,17 @@ interface ReportDetail {
 export default function ReportPage() {
   const params = useParams();
   const reportId = params.id;
-  const { token, openAuth } = useAuth();
+  const { token, authReady, openAuth } = useAuth();
 
   const [report, setReport] = useState<ReportDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
   useEffect(() => {
+    // authReady=false — ещё не проверили localStorage, token=null здесь
+    // ничего не значит (см. auth-context.tsx). Ждём, не показывая ошибку.
+    if (!authReady) return;
+
     if (!token) {
       setError('Пожалуйста, войдите в систему');
       setLoading(false);
@@ -37,6 +42,7 @@ export default function ReportPage() {
     }
 
     const fetchReport = async () => {
+      setError('');
       try {
         const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://ai-compliance-saas-6nz5.onrender.com';
         const response = await fetch(`${apiUrl}/api/reports/${reportId}`, {
@@ -64,7 +70,7 @@ export default function ReportPage() {
     };
 
     fetchReport();
-  }, [reportId, token]);
+  }, [reportId, token, authReady]);
 
   if (loading) {
     return (
@@ -103,7 +109,14 @@ export default function ReportPage() {
         {report.risk_level && <RiskBadge level={report.risk_level} />}
       </div>
 
-      {report.analysis && (
+      {report.analysis?.error && (
+        <Card className="p-4 flex items-center gap-2.5 border-risk-medium-border bg-risk-medium-bg">
+          <IconAlertTriangle className="w-5 h-5 text-risk-medium shrink-0" />
+          <p className="text-sm text-risk-medium">{report.analysis.error}</p>
+        </Card>
+      )}
+
+      {report.analysis && !report.analysis.error && (
         <div className="space-y-6">
           <ScoreSummary
             score={report.analysis.score}

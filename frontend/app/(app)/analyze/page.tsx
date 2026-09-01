@@ -413,7 +413,14 @@ export default function Home() {
         </div>
       )}
 
-      {result?.analysis && (
+      {result?.analysis?.error && (
+        <Card className="mt-6 p-4 flex items-center gap-2.5 border-risk-medium-border bg-risk-medium-bg">
+          <IconAlertTriangle className="w-5 h-5 text-risk-medium shrink-0" />
+          <p className="text-sm text-risk-medium">{result.analysis.error}</p>
+        </Card>
+      )}
+
+      {result?.analysis && !result.analysis.error && (
         <div className="mt-8 space-y-6">
           <ScoreSummary
             score={result.analysis.score}

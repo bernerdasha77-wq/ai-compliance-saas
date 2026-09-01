@@ -13,7 +13,7 @@ interface AdminStats {
 }
 
 export default function AdminPage() {
-  const { token, user } = useAuth();
+  const { token, user, authReady } = useAuth();
   const [users, setUsers] = useState<any[]>([]);
   const [reports, setReports] = useState<any[]>([]);
   const [stats, setStats] = useState<AdminStats>({ total_users: 0, total_reports: 0, active_users: 0 });
@@ -21,6 +21,10 @@ export default function AdminPage() {
   const [error, setError] = useState('');
 
   useEffect(() => {
+    // authReady=false — ещё не проверили localStorage, token/user=null здесь
+    // ничего не значит (см. auth-context.tsx). Ждём, не показывая ошибку.
+    if (!authReady) return;
+
     if (!token || !user) {
       setError('Вы не авторизованы');
       setLoading(false);
@@ -28,6 +32,7 @@ export default function AdminPage() {
     }
 
     const fetchData = async () => {
+      setError('');
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://ai-compliance-saas-6nz5.onrender.com';
       const headers = { Authorization: `Bearer ${token}` };
 
@@ -53,7 +58,7 @@ export default function AdminPage() {
     };
 
     fetchData();
-  }, [token, user]);
+  }, [token, user, authReady]);
 
   if (loading) {
     return (

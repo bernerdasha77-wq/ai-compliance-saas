@@ -25,12 +25,16 @@ function formatDate(dateString: string) {
 }
 
 export default function HistoryPage() {
-  const { token, user } = useAuth();
+  const { token, user, authReady } = useAuth();
   const [reports, setReports] = useState<Report[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
   useEffect(() => {
+    // authReady=false — ещё не проверили localStorage, token/user=null здесь
+    // ничего не значит (см. auth-context.tsx). Ждём, не показывая ошибку.
+    if (!authReady) return;
+
     if (!token || !user) {
       setError('Пожалуйста, войдите в систему');
       setLoading(false);
@@ -38,6 +42,7 @@ export default function HistoryPage() {
     }
 
     const fetchReports = async () => {
+      setError('');
       try {
         const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://ai-compliance-saas-6nz5.onrender.com';
         const response = await fetch(`${apiUrl}/api/reports/user/${user.id}`, {
@@ -64,7 +69,7 @@ export default function HistoryPage() {
     };
 
     fetchReports();
-  }, [token, user]);
+  }, [token, user, authReady]);
 
   return (
     <div className="max-w-4xl mx-auto px-6 sm:px-10 py-10">

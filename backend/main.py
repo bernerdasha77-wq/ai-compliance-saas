@@ -24,6 +24,7 @@ from services.access import (
     account_status,
 )
 from services.payments import TARIFFS, create_payment, apply_payment
+from services.scoring import build_error_result
 from database import get_db, Report, User
 from encryption_utils import encrypt_data, decrypt_data
 from auth import get_password_hash, verify_password, needs_rehash, create_access_token, decode_access_token, get_user_from_token, security
@@ -302,6 +303,32 @@ async def payments_webhook(request: Request):
         await asyncio.to_thread(apply_payment, payment_id)
     return {"status": "ok"}
 
+def _decode_analysis(encrypted: str) -> dict:
+    """Расшифровывает и парсит analysis_results отчёта.
+
+    Отчёты, созданные до того, как ENCRYPTION_KEY стал обязательным
+    постоянным секретом (см. encryption_utils.py), были зашифрованы ключом,
+    который менялся при каждом рестарте процесса — сейчас decrypt_data()
+    для них тихо возвращает исходный шифротекст (InvalidToken), и
+    json.loads либо падает, либо (если шифротекст сам оказался валидным
+    JSON-значением, как в найденном случае) возвращает не dict, а строку.
+    Контент таких отчётов физически не восстановить — возвращаем ту же
+    форму ошибки, что и parse_and_score при сбое разбора ответа модели, а
+    не отдаём сырой шифротекст на фронтенд (там он ломал ScoreSummary,
+    ожидающий analysis.standards)."""
+    try:
+        data = json.loads(decrypt_data(encrypted))
+    except (json.JSONDecodeError, TypeError):
+        data = None
+    if not isinstance(data, dict):
+        return build_error_result(
+            "Этот отчёт зашифрован ключом, который больше не действует "
+            "(создан до перехода на постоянный ключ шифрования) — "
+            "содержимое невозможно восстановить."
+        )
+    return data
+
+
 # ПОЛУЧЕНИЕ ОТЧЁТОВ
 @app.get("/api/reports/{report_id}")
 async def get_report(report_id: int, db: Session = Depends(get_db), token: str = Depends(security)):
@@ -319,7 +346,7 @@ async def get_report(report_id: int, db: Session = Depends(get_db), token: str =
         "id": report.id,
         "file_name": report.file_name,
         "risk_level": report.risk_level,
-        "analysis": json.loads(decrypt_data(report.analysis_results)),
+        "analysis": _decode_analysis(report.analysis_results),
         "checklist": report.checklist,
         "is_full_report": report.is_full_report,
         "created_at": report.created_at.isoformat()
