@@ -40,7 +40,13 @@ export default function RiskItem({ violation }: { violation: Violation }) {
       <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
         <div className="flex items-center gap-2 flex-wrap">
           <RiskBadge level={violation.risk_level} />
-          <span className="text-xs font-medium text-ink-500 bg-ink-100 px-2.5 py-1 rounded-pill">
+          <span
+            className={
+              violation.standard === 'Договорная практика EULA'
+                ? 'text-xs font-medium text-ink-400 border border-dashed border-ink-200 px-2.5 py-1 rounded-pill'
+                : 'text-xs font-medium text-ink-500 bg-ink-100 px-2.5 py-1 rounded-pill'
+            }
+          >
             {violation.standard}
           </span>
         </div>

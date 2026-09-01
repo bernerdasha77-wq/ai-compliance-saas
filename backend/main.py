@@ -7,7 +7,7 @@ import io
 import json
 import asyncio
 from datetime import datetime
-from fastapi import FastAPI, UploadFile, File, HTTPException, Depends, status, Request
+from fastapi import FastAPI, UploadFile, File, Form, HTTPException, Depends, status, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
@@ -153,11 +153,13 @@ async def login_user(user_data: UserLogin, db: Session = Depends(get_db)):
     }
 
 # АНАЛИЗ ДОГОВОРА
+ALLOWED_STANDARDS = {"152-ФЗ", "GDPR", "ISO 27001", "NIS2"}
+
 @app.post("/api/analyze", response_model=None)
 async def analyze_contract_endpoint(
     file: UploadFile = File(...),
     company_name: str = "Test Company",
-    law: str = "152-ФЗ",
+    standards: list[str] = Form(...),
     doc_type: str = "contract",
     db = Depends(get_db),
     token: str = Depends(security)
@@ -171,6 +173,11 @@ async def analyze_contract_endpoint(
 
     if not file.filename.endswith(('.pdf', '.docx')):
         raise HTTPException(status_code=400, detail="Поддерживаются только PDF и DOCX")
+
+    if not standards:
+        raise HTTPException(status_code=400, detail="Выберите хотя бы один стандарт")
+    if not set(standards) <= ALLOWED_STANDARDS:
+        raise HTTPException(status_code=400, detail="Недопустимый стандарт в списке")
 
     # Лимит проверяем ДО вызова DeepSeek — чтобы не тратить деньги на запрос,
     # который всё равно не покажем пользователю.
@@ -189,7 +196,7 @@ async def analyze_contract_endpoint(
 
         is_full = should_return_full_report(user)
 
-        analysis = await analyze_contract(text, law=law, doc_type=doc_type)
+        analysis = await analyze_contract(text, standards=standards, doc_type=doc_type)
 
         # score/risk_label считаются детерминированно на бэкенде (services/scoring.py)
         # из уровней риска найденных нарушений — см. analysis["score"] и analysis["risk_label"]

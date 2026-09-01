@@ -100,26 +100,46 @@ def build_error_result(message: str) -> dict:
     }
 
 
-def parse_and_score(raw: str, law: str, default_standards: list[str]) -> dict:
+def parse_and_score(raw: str, standards: list[str], always_active: str | None = None) -> dict:
     """Полный пайплайн: parse JSON -> нормализация нарушений -> подсчёт score.
-    Используется всеми ai_*.py после получения сырого ответа от DeepSeek."""
+    Используется всеми ai_*.py после получения сырого ответа от DeepSeek.
+
+    standards — стандарты, выбранные пользователем. always_active — категория
+    doc_type, которая проверяется всегда независимо от выбора (сейчас только
+    "Договорная практика EULA" у eula) — допускается в находках, но не
+    участвует в подсчёте score (см. compute_scores ниже)."""
     try:
         data = json.loads(raw)
     except (json.JSONDecodeError, TypeError):
         return build_error_result("Не удалось разобрать ответ модели. Попробуйте ещё раз.")
 
-    standards = data.get("applicable_standards") or list(default_standards)
-    if law and law not in standards:
-        standards.append(law)
+    allowed = list(standards) + ([always_active] if always_active else [])
+    raw_applicable = data.get("applicable_standards") or list(allowed)
+    # Пересечение с allowed — не даём модели "протащить" стандарт, который
+    # пользователь не выбирал (даже если она сама его предложила), и заодно
+    # приводим к канонической форме через _match_standard (модель иногда
+    # немного меняет формулировку).
+    applicable = []
+    for s in raw_applicable:
+        matched = _match_standard(s, allowed)
+        if matched and matched not in applicable:
+            applicable.append(matched)
 
     raw_violations = data.get("violations", [])
     violations = []
     for i, item in enumerate(raw_violations):
         normalized = normalize_violation(item, index=i)
-        if normalized:
+        if normalized and _match_standard(normalized["standard"], allowed):
             violations.append(normalized)
 
-    score, risk_label, standards_out = compute_scores(violations, standards)
+    # always_active (если есть) исключается и из набора стандартов для
+    # compute_scores, и из находок, которые в него передаются — находки по
+    # ней не влияют на числовой score и не получают строку в разбивке.
+    scored_standards = [s for s in applicable if s != always_active]
+    scored_violations = [
+        v for v in violations if not (always_active and _match_standard(v["standard"], [always_active]))
+    ]
+    score, risk_label, standards_out = compute_scores(scored_violations, scored_standards)
 
     return {
         "score": score,

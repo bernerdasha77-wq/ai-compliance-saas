@@ -19,11 +19,10 @@ DOC_CONFIGS = {
         "focus_points": [
             "Утечка данных (защита персональных данных)",
             "Контроль доступа",
-            "Ответственность сторон",
+            "Ответственность сторон за инциденты и утечки данных",
             "Шифрование данных (AES-256 / TLS)",
             "Уведомление регулятора об инцидентах",
         ],
-        "default_standards": ["152-ФЗ", "GDPR", "ISO 27001", "NIS2"],
     },
     "eula": {
         "role": "юридический AI-эксперт по лицензионным соглашениям (EULA) и условиям использования (Terms)",
@@ -35,7 +34,15 @@ DOC_CONFIGS = {
             "Ответственность и гарантии",
             "Расторжение и изменение условий",
         ],
-        "default_standards": ["EULA Best Practices", "GDPR"],
+        # Большинство focus_points EULA (лицензия, условия использования,
+        # ответственность, расторжение) — не про защиту данных и не привязаны
+        # ни к одному из выбираемых пользователем стандартов (152-ФЗ/GDPR/
+        # ISO 27001/NIS2). Эта категория всегда активна независимо от выбора
+        # пользователя (см. build_prompt) — в отличие от настоящих стандартов,
+        # её нельзя ни выбрать, ни выключить, и находки по ней не влияют на
+        # числовой score (см. services/scoring.py: compute_scores вызывается
+        # без неё).
+        "always_active_category": "Договорная практика EULA",
         # EULA/Terms часто корректно делегируют детали в отдельную Политику
         # конфиденциальности вместо дублирования — без этой оговорки модель
         # штрафовала документ за "отсутствие" содержания, которое на самом
@@ -71,7 +78,6 @@ DOC_CONFIGS = {
             "Сроки хранения данных",
             "Права субъекта данных",
         ],
-        "default_standards": ["GDPR", "152-ФЗ", "ISO 27001"],
     },
 }
 
@@ -99,8 +105,14 @@ RESPONSE_JSON_EXAMPLE = """{
 }"""
 
 
-def build_prompt(doc_type: str, text: str, law: str = "152-ФЗ") -> tuple[str, str, bool]:
+def build_prompt(doc_type: str, text: str, standards: list[str]) -> tuple[str, str, bool]:
     """Собирает (system_prompt, user_prompt, is_truncated) для запроса к DeepSeek.
+
+    standards — стандарты, выбранные пользователем (подмножество 152-ФЗ/GDPR/
+    ISO 27001/NIS2). Если у doc_type есть "always_active_category" (сейчас
+    только у eula — темы вроде лицензионных ограничений, не привязанные ни к
+    одному настоящему стандарту) — она добавляется в промпт всегда, независимо
+    от выбора пользователя.
 
     is_truncated=True означает, что документ длиннее MAX_DOCUMENT_CHARS и не
     поместился в контекст целиком (редкий случай — очень длинные договоры
@@ -113,9 +125,10 @@ def build_prompt(doc_type: str, text: str, law: str = "152-ФЗ") -> tuple[str, 
     """
     config = DOC_CONFIGS.get(doc_type, DOC_CONFIGS["contract"])
 
-    standards = list(config["default_standards"])
-    if law and law not in standards:
-        standards.insert(0, law)
+    standards = list(standards)
+    always_active = config.get("always_active_category")
+    if always_active and always_active not in standards:
+        standards.append(always_active)
 
     focus_list = "\n".join(f"{i+1}. {point}" for i, point in enumerate(config["focus_points"]))
     standards_list = ", ".join(standards)
@@ -219,6 +232,10 @@ def build_prompt(doc_type: str, text: str, law: str = "152-ФЗ") -> tuple[str, 
   текста. Если достаточно одной формулировки — массив из одного элемента, не пустая строка
   и не null.
 - "action_checklist" — 3-6 коротких пунктов общего плана действий.
+- Если тема из списка ключевых пунктов выше по существу не регулируется ни
+  одним из стандартов, перечисленных в "Проверь применимость...", — не
+  создавай по ней нарушение и не притягивай его к неподходящему стандарту
+  просто потому, что это единственный или один из немногих доступных.
 - Никакой воды, только факты и конкретика.
 {rag_rule}
 """.strip()

@@ -54,14 +54,14 @@ async def local_analyze(text: str) -> dict:
     return build_local_result(text, LOCAL_CHECKS)
 
 
-async def deepseek_analyze(text: str, law: str = "152-ФЗ") -> dict:
+async def deepseek_analyze(text: str, standards: list[str]) -> dict:
     """Анализ через DeepSeek. При сбое запроса или нечитаемом ответе — тихий
     откат на локальный анализ по ключевым словам, чтобы пользователь получил
     хоть какой-то результат, а не ошибку (см. build_local_result)."""
     # to_thread: build_prompt() делает синхронный CPU-bound энкодинг эмбеддинга
     # и синхронный psycopg2-запрос (см. services/retrieval.py) — без этого
     # блокировал бы event loop так же, как раньше блокировал call_deepseek.
-    system_prompt, user_prompt, is_truncated = await asyncio.to_thread(build_prompt, DOC_TYPE, text, law)
+    system_prompt, user_prompt, is_truncated = await asyncio.to_thread(build_prompt, DOC_TYPE, text, standards)
     if is_truncated:
         print(f"[DeepSeek] Документ обрезан для анализа (doc_type={DOC_TYPE})")
 
@@ -76,7 +76,7 @@ async def deepseek_analyze(text: str, law: str = "152-ФЗ") -> dict:
     except Exception as e:
         return await _fallback(f"Ошибка запроса к DeepSeek: {e}")
 
-    result = parse_and_score(raw, law, DOC_CONFIGS[DOC_TYPE]["default_standards"])
+    result = parse_and_score(raw, standards, DOC_CONFIGS[DOC_TYPE].get("always_active_category"))
     if result.get("error"):
         return await _fallback("Не удалось разобрать ответ DeepSeek")
 

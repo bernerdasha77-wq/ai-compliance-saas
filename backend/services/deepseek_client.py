@@ -7,6 +7,21 @@ from openai import AsyncOpenAI
 # друг за другом вместо конкурентной обработки (см. main.py, единственный
 # uvicorn-воркер). await на асинхронном клиенте отдаёт управление на время
 # сетевого ожидания, не меняя саму скорость ответа DeepSeek.
+# Низкая temperature — меньше случайности в том, какие нарушения модель решает
+# найти на одном и том же входном тексте между прогонами (см. историю: тот же
+# документ с чисто позитивными правками формулировок один раз дал явно худший
+# score, чем оригинал — при 0.3 это статистически ожидаемо).
+#
+# Реально измерено на одном документе, 5 прогонов на каждое значение:
+#   temperature=0.3: score 0-47 (разброс 47), находок 6-10 (разброс 4)
+#   temperature=0.1: score 24-47 (разброс 23), находок 6-10 (разброс 4)
+#   temperature=0:   score 32-47 (разброс 15), находок 6-7  (разброс 1)
+# При 0 качество/содержательность находок не хуже, чем при 0.3 (сверялись
+# конкретные формулировки, не только score) — полной детерминированности
+# всё равно нет (DeepSeek не гарантирует byte-for-byte воспроизводимость
+# даже при temperature=0), но разброс существенно уже.
+DEFAULT_TEMPERATURE = 0
+
 _client: AsyncOpenAI | None = None
 
 
@@ -23,7 +38,7 @@ def _get_client() -> AsyncOpenAI:
     return _client
 
 
-async def call_deepseek(system_prompt: str, user_prompt: str) -> str:
+async def call_deepseek(system_prompt: str, user_prompt: str, temperature: float = DEFAULT_TEMPERATURE) -> str:
     client = _get_client()
     response = await client.chat.completions.create(
         model="deepseek-chat",
@@ -31,7 +46,7 @@ async def call_deepseek(system_prompt: str, user_prompt: str) -> str:
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt},
         ],
-        temperature=0.3,
+        temperature=temperature,
         max_tokens=5000,
     )
     return response.choices[0].message.content

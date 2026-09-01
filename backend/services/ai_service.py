@@ -13,6 +13,6 @@ ANALYZERS = {
 }
 
 
-async def analyze_contract(text: str, law: str = "152-ФЗ", doc_type: str = "contract") -> dict:
+async def analyze_contract(text: str, standards: list[str], doc_type: str = "contract") -> dict:
     analyzer = ANALYZERS.get(doc_type, ANALYZERS["contract"])
-    return await analyzer(text, law)
+    return await analyzer(text, standards)

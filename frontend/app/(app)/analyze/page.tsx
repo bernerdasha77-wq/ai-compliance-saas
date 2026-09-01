@@ -11,17 +11,21 @@ import { AnalysisResult } from '../../lib/types';
 import { IconFileText, IconSmartphone, IconLock, IconUpload, IconAlertTriangle, IconHistory } from '../../components/icons';
 import { ANALYZE_SUSPENDED, SUSPENSION_MESSAGE } from '../../lib/maintenance';
 
-const PROGRESS_STEPS = [
-  { until: 25, label: 'Читаем документ' },
-  { until: 60, label: 'Ищем нарушения по 152-ФЗ, GDPR, ISO 27001, NIS2' },
-  { until: 100, label: 'Формируем отчёт и рекомендации' },
-];
+function getProgressSteps(standards: string[]) {
+  return [
+    { until: 25, label: 'Читаем документ' },
+    { until: 60, label: `Ищем нарушения по ${standards.join(', ')}` },
+    { until: 100, label: 'Формируем отчёт и рекомендации' },
+  ];
+}
 
 const docTypes = [
   { id: 'contract', title: 'Договор с контрагентом', icon: IconFileText, hint: 'Проверим утечки данных, контроль доступа, шифрование и ответственность за инциденты' },
   { id: 'eula', title: 'EULA / Terms', icon: IconSmartphone, hint: 'Оценим лицензионные ограничения, авторские права и условия использования' },
   { id: 'privacy', title: 'Политика конфиденциальности', icon: IconLock, hint: 'Проверим сбор данных, согласия пользователей и передачу информации третьим лицам' },
 ];
+
+const STANDARDS = ['152-ФЗ', 'GDPR', 'ISO 27001', 'NIS2'];
 
 type AccountStatus =
   | { kind: 'admin' }
@@ -114,6 +118,7 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
   const [limitReached, setLimitReached] = useState(false);
   const [docType, setDocType] = useState('contract');
+  const [selectedStandards, setSelectedStandards] = useState<string[]>([]);
   const [account, setAccount] = useState<AccountStatus | null>(null);
   const progressTimer = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -157,11 +162,22 @@ export default function Home() {
     }
   };
 
+  const toggleStandard = (standard: string) => {
+    setSelectedStandards((prev) =>
+      prev.includes(standard) ? prev.filter((s) => s !== standard) : [...prev, standard]
+    );
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!file) {
       setError('Пожалуйста, выберите файл');
+      return;
+    }
+
+    if (selectedStandards.length === 0) {
+      setError('Выберите хотя бы один стандарт проверки');
       return;
     }
 
@@ -180,11 +196,12 @@ export default function Home() {
     const formData = new FormData();
     formData.append('file', file);
     formData.append('company_name', 'Тестовая компания');
+    selectedStandards.forEach((s) => formData.append('standards', s));
 
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://ai-compliance-saas-6nz5.onrender.com';
       const response = await fetch(
-        `${apiUrl}/api/analyze?company_name=Тестовая компания&law=152-ФЗ&doc_type=${docType}`,
+        `${apiUrl}/api/analyze?company_name=Тестовая компания&doc_type=${docType}`,
         {
           method: 'POST',
           headers: { Authorization: `Bearer ${token}` },
@@ -259,33 +276,57 @@ export default function Home() {
 
       {account && <AccountStatusCard account={account} />}
 
-      <div className="mb-6">
-        <p className="text-sm font-medium text-ink-700 mb-3">Тип документа</p>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          {docTypes.map((type) => {
-            const Icon = type.icon;
-            const active = docType === type.id;
-            return (
-              <button
-                key={type.id}
-                onClick={() => setDocType(type.id)}
-                className={`p-4 rounded-card border text-left transition ${
-                  active
-                    ? 'border-brand bg-brand-light'
-                    : 'border-ink-100 hover:border-brand/40'
-                }`}
+      <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-6 mb-6">
+        <div>
+          <p className="text-sm font-medium text-ink-700 mb-3">Тип документа</p>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            {docTypes.map((type) => {
+              const Icon = type.icon;
+              const active = docType === type.id;
+              return (
+                <button
+                  key={type.id}
+                  onClick={() => setDocType(type.id)}
+                  className={`p-4 rounded-card border text-left transition ${
+                    active
+                      ? 'border-brand bg-brand-light'
+                      : 'border-ink-100 hover:border-brand/40'
+                  }`}
+                >
+                  <Icon className={`w-5 h-5 mb-2 ${active ? 'text-brand' : 'text-ink-500'}`} />
+                  <div className="font-medium text-sm text-ink-900">{type.title}</div>
+                </button>
+              );
+            })}
+          </div>
+          <p className="text-sm text-ink-500 mt-3">
+            {docTypes.find((t) => t.id === docType)?.hint}
+          </p>
+        </div>
+
+        <div>
+          <p className="text-sm font-medium text-ink-700 mb-3">Стандарты проверки</p>
+          <div className="space-y-2">
+            {STANDARDS.map((standard) => (
+              <label
+                key={standard}
+                className="flex items-center gap-2.5 p-3 rounded-card border border-ink-100 hover:border-brand/40 cursor-pointer transition"
               >
-                <Icon className={`w-5 h-5 mb-2 ${active ? 'text-brand' : 'text-ink-500'}`} />
-                <div className="font-medium text-sm text-ink-900">{type.title}</div>
-              </button>
-            );
-          })}
+                <input
+                  type="checkbox"
+                  checked={selectedStandards.includes(standard)}
+                  onChange={() => toggleStandard(standard)}
+                  className="accent-brand w-4 h-4"
+                />
+                <span className="text-sm font-medium text-ink-900">{standard}</span>
+              </label>
+            ))}
+          </div>
+          {selectedStandards.length === 0 && (
+            <p className="text-xs text-ink-400 mt-2">Выберите хотя бы один стандарт</p>
+          )}
         </div>
       </div>
-
-      <p className="text-sm text-ink-500 mb-6">
-        {docTypes.find((t) => t.id === docType)?.hint}
-      </p>
 
       <form onSubmit={handleSubmit} className="space-y-5">
         <label
@@ -310,7 +351,7 @@ export default function Home() {
 
         <button
           type="submit"
-          disabled={!file || loading}
+          disabled={!file || loading || selectedStandards.length === 0}
           className="w-full bg-brand text-white py-3.5 rounded-card font-semibold hover:bg-brand-hover disabled:opacity-50 disabled:cursor-not-allowed transition"
         >
           {loading ? 'Анализирую...' : 'Проверить документ'}
@@ -321,7 +362,10 @@ export default function Home() {
         <Card className="mt-6 p-5">
           <div className="flex items-center justify-between mb-2">
             <p className="text-sm font-medium text-ink-900">
-              {PROGRESS_STEPS.find((s) => progress < s.until)?.label ?? PROGRESS_STEPS[PROGRESS_STEPS.length - 1].label}
+              {(() => {
+                const steps = getProgressSteps(selectedStandards);
+                return steps.find((s) => progress < s.until)?.label ?? steps[steps.length - 1].label;
+              })()}
             </p>
             <span className="text-sm text-ink-500 tabular-nums">{Math.round(progress)}%</span>
           </div>
