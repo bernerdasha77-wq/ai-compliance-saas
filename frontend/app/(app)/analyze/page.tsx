@@ -318,13 +318,17 @@ export default function Home() {
                   onChange={() => toggleStandard(standard)}
                   className="accent-brand w-4 h-4"
                 />
-                <span className="text-sm font-medium text-ink-900">{standard}</span>
+                <span className="text-sm font-medium text-ink-900">
+                  {standard}
+                  {standard === 'ISO 27001' && <sup className="text-ink-400">*</sup>}
+                </span>
               </label>
             ))}
           </div>
-          {selectedStandards.length === 0 && (
-            <p className="text-xs text-ink-400 mt-2">Выберите хотя бы один стандарт</p>
-          )}
+          <p className="text-xs text-ink-400 mt-2">
+            {selectedStandards.length === 0 && <>Выберите хотя бы один стандарт<br /></>}
+            * без прямых цитат из текста стандарта — по общим знаниям модели
+          </p>
         </div>
       </div>
 
