@@ -17,6 +17,12 @@ export default function MarketingFooter() {
             <Link href="/faq" className="hover:text-ink-900 transition">
               FAQ
             </Link>
+            <Link href="/privacy" className="hover:text-ink-900 transition">
+              Политика конфиденциальности
+            </Link>
+            <Link href="/terms" className="hover:text-ink-900 transition">
+              Пользовательское соглашение
+            </Link>
             <Link href="/offer" className="hover:text-ink-900 transition">
               Публичная оферта
             </Link>

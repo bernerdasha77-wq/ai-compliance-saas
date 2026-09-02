@@ -8,6 +8,14 @@ function Footer() {
   return (
     <footer className="border-t border-ink-100 py-4 px-6 sm:px-10 text-center text-sm text-ink-500">
       <div className="max-w-6xl mx-auto flex flex-col sm:flex-row justify-center items-center gap-2 sm:gap-4">
+        <Link href="/privacy" className="hover:text-ink-900 transition">
+          Политика конфиденциальности
+        </Link>
+        <span className="hidden sm:inline text-ink-300">|</span>
+        <Link href="/terms" className="hover:text-ink-900 transition">
+          Пользовательское соглашение
+        </Link>
+        <span className="hidden sm:inline text-ink-300">|</span>
         <Link href="/offer" className="hover:text-ink-900 transition">
           Публичная оферта
         </Link>
