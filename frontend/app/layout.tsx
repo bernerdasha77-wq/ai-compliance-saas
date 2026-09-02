@@ -1,9 +1,9 @@
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
-import Script from 'next/script';
 import { AuthProvider } from './lib/auth-context';
 import AuthModal from './components/AuthModal';
+import CookieConsent from './components/CookieConsent';
 
 const inter = Inter({ subsets: ['latin', 'cyrillic'] });
 
@@ -36,19 +36,7 @@ export default function RootLayout({
           <AuthModal />
         </AuthProvider>
 
-        {/* ===== GOOGLE ANALYTICS ===== */}
-        <Script
-          src="https://www.googletagmanager.com/gtag/js?id=G-L5XSROKW7H"
-          strategy="afterInteractive"
-        />
-        <Script id="google-analytics" strategy="afterInteractive">
-          {`
-            window.dataLayer = window.dataLayer || [];
-            function gtag(){dataLayer.push(arguments);}
-            gtag('js', new Date());
-            gtag('config', 'G-L5XSROKW7H');
-          `}
-        </Script>
+        <CookieConsent />
       </body>
     </html>
   );
