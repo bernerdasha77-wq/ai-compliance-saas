@@ -51,6 +51,13 @@ class User(Base):
     period_checks_used = Column(Integer, default=0)
     one_time_credits = Column(Integer, default=0)
 
+    # Факт согласия при регистрации (см. migrations/005_add_consent_records.sql) —
+    # три отдельных чекбокса на форме регистрации (AuthModal.tsx), NULL у
+    # пользователей, зарегистрировавшихся до появления этого трекинга.
+    consent_personal_data_at = Column(DateTime, nullable=True)
+    consent_terms_at = Column(DateTime, nullable=True)
+    consent_us_transfer_at = Column(DateTime, nullable=True)
+
     reports = relationship("Report", back_populates="user")
 
 class Report(Base):

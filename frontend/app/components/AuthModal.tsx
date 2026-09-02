@@ -27,7 +27,14 @@ export default function AuthModal() {
     const endpoint = isLogin ? '/api/login' : '/api/register';
     const payload = isLogin
       ? { email, password }
-      : { email, password, full_name: fullName };
+      : {
+          email,
+          password,
+          full_name: fullName,
+          consent_personal_data: consentPersonalData,
+          consent_terms: consentTerms,
+          consent_us_transfer: consentUsTransfer,
+        };
 
     try {
       const response = await fetch(`${apiUrl}${endpoint}`, {

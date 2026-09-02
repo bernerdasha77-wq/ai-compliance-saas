@@ -83,6 +83,9 @@ class UserRegister(BaseModel):
     email: str
     password: str
     full_name: str
+    consent_personal_data: bool
+    consent_terms: bool
+    consent_us_transfer: bool
 
 class UserLogin(BaseModel):
     email: str
@@ -103,12 +106,22 @@ async def register_user(user_data: UserRegister, db: Session = Depends(get_db)):
     existing_user = db.query(User).filter(User.email == user_data.email).first()
     if existing_user:
         raise HTTPException(status_code=400, detail="Пользователь с таким email уже существует")
-    
+
+    # Все три согласия обязательны для регистрации (152-ФЗ ст. 9, ч. 3 ст. 12 —
+    # см. app/(marketing)/privacy и /consent) — проверяем на бэкенде, а не
+    # полагаемся только на disabled-кнопку на фронтенде.
+    if not (user_data.consent_personal_data and user_data.consent_terms and user_data.consent_us_transfer):
+        raise HTTPException(status_code=400, detail="Необходимо принять все условия для регистрации")
+
     hashed_password = get_password_hash(user_data.password)
+    consent_at = datetime.utcnow()
     new_user = User(
         email=user_data.email,
         hashed_password=hashed_password,
-        full_name=user_data.full_name
+        full_name=user_data.full_name,
+        consent_personal_data_at=consent_at,
+        consent_terms_at=consent_at,
+        consent_us_transfer_at=consent_at,
     )
     db.add(new_user)
     db.commit()
