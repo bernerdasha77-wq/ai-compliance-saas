@@ -8,8 +8,8 @@ import {
   IconUpload,
   IconSearch,
   IconFileText,
-  IconKey,
   IconGlobe,
+  IconInfo,
 } from '../components/icons';
 
 const TITLE = 'AI Compliance Checker — проверка договоров на соответствие 152-ФЗ, GDPR, ISO 27001';
@@ -35,10 +35,9 @@ const steps = [
 ];
 
 const security = [
-  { icon: IconLock, title: 'Шифрование AES-256', text: 'Все результаты анализов хранятся в зашифрованном виде.' },
-  { icon: IconShield, title: 'JWT-авторизация', text: 'Доступ к личному кабинету и истории только после входа.' },
-  { icon: IconKey, title: 'Хеширование паролей', text: 'Пароли не хранятся в открытом виде.' },
-  { icon: IconGlobe, title: 'HTTPS', text: 'Все данные передаются по защищённому каналу.' },
+  { icon: IconLock, title: 'Документ не хранится', text: 'Анализируется в оперативной памяти и удаляется сразу после обработки — не остаётся ни на сервере, ни в базе данных.' },
+  { icon: IconGlobe, title: 'Передача защищена', text: 'Все данные передаются по HTTPS — защищённому каналу связи.' },
+  { icon: IconInfo, title: 'Как обрабатывается документ', text: 'Для анализа документ временно обрабатывается AI-моделью. Подробности о том, как обрабатываются ваши данные — в политике конфиденциальности.' },
 ];
 
 function HeroScoreRing() {
@@ -157,16 +156,7 @@ export default function LandingPage() {
         <h2 className="text-2xl sm:text-3xl font-bold text-ink-900 mb-6 text-center">
           Безопасность
         </h2>
-        <div className="flex justify-center mb-8">
-          <div className="inline-flex items-center gap-2 px-4 py-2.5 rounded-pill bg-risk-low-bg border border-risk-low-border">
-            <IconLock className="w-4 h-4 text-risk-low shrink-0" />
-            <span className="text-sm text-ink-700">
-              Файл анализируется в оперативной памяти и удаляется сразу после обработки — не
-              сохраняется ни на сервере, ни в базе данных.
-            </span>
-          </div>
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {security.map((item) => {
             const Icon = item.icon;
             return (

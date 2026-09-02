@@ -34,6 +34,7 @@ export default function MarketingFooter() {
             Автоматизированная проверка документов, а не юридическая консультация. Результаты —
             ориентир для дальнейшей работы с юристом.
           </p>
+          <p className="text-xs text-ink-500 mt-2">Реквизиты — в публичной оферте</p>
           <p className="text-xs text-ink-300 mt-2">© 2026 AI Compliance Checker</p>
         </div>
       </div>
