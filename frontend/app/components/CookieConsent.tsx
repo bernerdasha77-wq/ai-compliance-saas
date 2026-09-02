@@ -45,7 +45,7 @@ export default function CookieConsent() {
           <div className="max-w-6xl mx-auto px-6 sm:px-10 py-4 flex flex-col sm:flex-row items-center gap-4">
             <p className="text-sm text-ink-700 flex-1">
               Мы используем cookie для аналитики. Подробнее —{' '}
-              <Link href="/offer" className="text-brand hover:text-brand-hover underline underline-offset-2">
+              <Link href="/privacy" className="text-brand hover:text-brand-hover underline underline-offset-2">
                 в политике конфиденциальности
               </Link>
               .

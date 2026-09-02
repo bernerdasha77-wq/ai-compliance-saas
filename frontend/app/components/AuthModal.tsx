@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { useAuth } from '../lib/auth-context';
 
 export default function AuthModal() {
@@ -9,8 +10,13 @@ export default function AuthModal() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
+  const [consentPersonalData, setConsentPersonalData] = useState(false);
+  const [consentTerms, setConsentTerms] = useState(false);
+  const [consentUsTransfer, setConsentUsTransfer] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  const canSubmit = isLogin || (consentPersonalData && consentTerms && consentUsTransfer);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -110,6 +116,65 @@ export default function AuthModal() {
             />
           </div>
 
+          {!isLogin && (
+            <div className="space-y-2.5">
+              <label className="flex items-start gap-2.5 text-xs text-ink-700">
+                <input
+                  type="checkbox"
+                  checked={consentPersonalData}
+                  onChange={(e) => setConsentPersonalData(e.target.checked)}
+                  className="mt-0.5 accent-brand w-4 h-4 shrink-0"
+                  required
+                />
+                <span>
+                  Я даю согласие Аветисян Дарье Андреевне (ИНН 632147371878) на обработку моих
+                  персональных данных на условиях, указанных в{' '}
+                  <Link href="/privacy" target="_blank" className="text-brand hover:text-brand-hover underline underline-offset-2">
+                    Политике конфиденциальности
+                  </Link>
+                </span>
+              </label>
+
+              <label className="flex items-start gap-2.5 text-xs text-ink-700">
+                <input
+                  type="checkbox"
+                  checked={consentTerms}
+                  onChange={(e) => setConsentTerms(e.target.checked)}
+                  className="mt-0.5 accent-brand w-4 h-4 shrink-0"
+                  required
+                />
+                <span>
+                  Я принимаю условия{' '}
+                  <Link href="/terms" target="_blank" className="text-brand hover:text-brand-hover underline underline-offset-2">
+                    Пользовательского соглашения
+                  </Link>{' '}
+                  и{' '}
+                  <Link href="/offer" target="_blank" className="text-brand hover:text-brand-hover underline underline-offset-2">
+                    Публичной оферты
+                  </Link>
+                </span>
+              </label>
+
+              <label className="flex items-start gap-2.5 text-xs text-ink-700">
+                <input
+                  type="checkbox"
+                  checked={consentUsTransfer}
+                  onChange={(e) => setConsentUsTransfer(e.target.checked)}
+                  className="mt-0.5 accent-brand w-4 h-4 shrink-0"
+                  required
+                />
+                <span>
+                  Я даю согласие на трансграничную передачу моих персональных данных на территорию
+                  Соединённых Штатов Америки (см.{' '}
+                  <Link href="/privacy#cross-border" target="_blank" className="text-brand hover:text-brand-hover underline underline-offset-2">
+                    раздел 8 Политики конфиденциальности
+                  </Link>
+                  )
+                </span>
+              </label>
+            </div>
+          )}
+
           {error && (
             <div className="p-3 bg-risk-high-bg border border-risk-high-border rounded-lg text-risk-high text-sm">
               {error}
@@ -118,7 +183,7 @@ export default function AuthModal() {
 
           <button
             type="submit"
-            disabled={loading}
+            disabled={loading || !canSubmit}
             className="w-full py-3 text-white bg-brand rounded-lg font-semibold hover:bg-brand-hover disabled:opacity-50 transition"
           >
             {loading ? 'Загрузка...' : (isLogin ? 'Войти' : 'Зарегистрироваться')}
