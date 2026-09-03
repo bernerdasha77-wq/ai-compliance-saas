@@ -35,6 +35,33 @@ describe('телефоны', () => {
     expect(r.counts.phone).toBe(2);
     expect(r.text).not.toMatch(/\d/);
   });
+
+  it('распознаёт международный номер США (+1)', () => {
+    const r = anonymizeText('Call us: +1 (555) 123-4567');
+    expect(r.text).toBe('Call us: [ТЕЛЕФОН СКРЫТ]');
+    expect(r.counts.phone).toBe(1);
+  });
+
+  it('распознаёт международный номер Великобритании (+44)', () => {
+    const r = anonymizeText('Phone: +44 20 1234 5678');
+    expect(r.counts.phone).toBe(1);
+  });
+
+  it('распознаёт международный номер без разделителей', () => {
+    const r = anonymizeText('+14155552671');
+    expect(r.counts.phone).toBe(1);
+  });
+
+  it('НЕ трогает международный формат без "+" (слишком высок риск ложного срабатывания)', () => {
+    const r = anonymizeText('код изделия 14155552671');
+    expect(r.counts.phone).toBeUndefined();
+  });
+
+  it('НЕ трогает короткое число с "+" вне диапазона E.164 (7-15 цифр)', () => {
+    const r = anonymizeText('+123456');
+    expect(r.counts.phone).toBeUndefined();
+    expect(r.text).toBe('+123456');
+  });
 });
 
 describe('email', () => {
