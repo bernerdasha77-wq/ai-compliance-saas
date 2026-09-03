@@ -10,6 +10,8 @@ import { useAuth } from '../../lib/auth-context';
 import { AnalysisResult } from '../../lib/types';
 import { IconFileText, IconSmartphone, IconLock, IconUpload, IconAlertTriangle, IconHistory } from '../../components/icons';
 import { ANALYZE_SUSPENDED, SUSPENSION_MESSAGE } from '../../lib/maintenance';
+import { extractTextFromFile } from '../../lib/extractText';
+import { anonymizeText, formatRedactSummary, AnonymizeResult } from '../../lib/anonymize';
 
 function getProgressSteps(standards: string[]) {
   return [
@@ -122,6 +124,16 @@ export default function Home() {
   const [account, setAccount] = useState<AccountStatus | null>(null);
   const progressTimer = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  // Обезличивание — см. app/lib/anonymize.ts, app/lib/extractText.ts. Текст
+  // извлекается в браузере сразу при выборе файла (не после отправки) —
+  // именно поэтому сводка "Скрыто: ..." доступна ДО отправки, а сам файл
+  // на сервер больше не уходит вообще, уходит только текст.
+  const [redactEnabled, setRedactEnabled] = useState(true);
+  const [extracting, setExtracting] = useState(false);
+  const [extractError, setExtractError] = useState<string | null>(null);
+  const [extractedText, setExtractedText] = useState<string | null>(null);
+  const [redactResult, setRedactResult] = useState<AnonymizeResult | null>(null);
+
   const stopProgress = () => {
     if (progressTimer.current) {
       clearInterval(progressTimer.current);
@@ -153,14 +165,44 @@ export default function Home() {
       .catch(() => {});
   }, [token]);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      setFile(e.target.files[0]);
-      setError(null);
-      setResult(null);
-      setLimitReached(false);
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selected = e.target.files?.[0];
+    if (!selected) return;
+
+    setFile(selected);
+    setError(null);
+    setResult(null);
+    setLimitReached(false);
+    setExtractedText(null);
+    setRedactResult(null);
+    setExtractError(null);
+    setExtracting(true);
+
+    try {
+      const text = await extractTextFromFile(selected);
+      if (!text.trim()) {
+        setExtractError(
+          'Не удалось извлечь текст из документа — возможно, это скан без текстового слоя. Попробуйте другой файл.'
+        );
+        return;
+      }
+      setExtractedText(text);
+    } catch (err: any) {
+      setExtractError(err.message || 'Не удалось прочитать файл');
+    } finally {
+      setExtracting(false);
     }
   };
+
+  // Пересчитываем обезличивание при новом тексте или переключении чекбокса —
+  // сводка в UI всегда должна отражать то, что реально уйдёт при отправке.
+  useEffect(() => {
+    if (!extractedText) {
+      setRedactResult(null);
+      return;
+    }
+    setRedactResult(redactEnabled ? anonymizeText(extractedText) : null);
+  }, [extractedText, redactEnabled]);
 
   const toggleStandard = (standard: string) => {
     setSelectedStandards((prev) =>
@@ -173,6 +215,16 @@ export default function Home() {
 
     if (!file) {
       setError('Пожалуйста, выберите файл');
+      return;
+    }
+
+    if (extractError) {
+      setError('Не удалось прочитать документ — выберите другой файл');
+      return;
+    }
+
+    if (extracting || !extractedText) {
+      setError('Дождитесь окончания чтения документа');
       return;
     }
 
@@ -193,8 +245,11 @@ export default function Home() {
     setLimitReached(false);
     startProgress();
 
+    const textToSend = redactEnabled && redactResult ? redactResult.text : extractedText;
+
     const formData = new FormData();
-    formData.append('file', file);
+    formData.append('file_name', file.name);
+    formData.append('text', textToSend);
     formData.append('company_name', 'Тестовая компания');
     selectedStandards.forEach((s) => formData.append('standards', s));
 
@@ -353,9 +408,45 @@ export default function Home() {
           )}
         </label>
 
+        {file && (
+          <div>
+            <label className="flex items-start gap-2.5 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={redactEnabled}
+                onChange={(e) => setRedactEnabled(e.target.checked)}
+                className="mt-0.5 accent-brand w-4 h-4 shrink-0"
+              />
+              <span className="text-sm font-medium text-ink-900">
+                Скрыть контактные данные и номера документов перед отправкой
+              </span>
+            </label>
+            <p className="text-xs text-ink-400 mt-1.5 ml-6">
+              Имена и адреса не распознаются автоматически — для дополнительной защиты уберите
+              их из документа вручную перед загрузкой, если это важно.
+            </p>
+
+            {extracting && (
+              <p className="text-xs text-ink-500 mt-2 ml-6">Читаем документ…</p>
+            )}
+
+            {extractError && (
+              <p className="text-xs text-risk-high mt-2 ml-6">{extractError}</p>
+            )}
+
+            {redactEnabled && redactResult && (
+              <p className="text-xs text-ink-500 mt-2 ml-6">
+                {redactResult.total > 0
+                  ? `Скрыто: ${formatRedactSummary(redactResult.counts)}`
+                  : 'Контактных данных и номеров документов не найдено'}
+              </p>
+            )}
+          </div>
+        )}
+
         <button
           type="submit"
-          disabled={!file || loading || selectedStandards.length === 0}
+          disabled={!file || loading || selectedStandards.length === 0 || extracting || !!extractError || !extractedText}
           className="w-full bg-brand text-white py-3.5 rounded-card font-semibold hover:bg-brand-hover disabled:opacity-50 disabled:cursor-not-allowed transition"
         >
           {loading ? 'Анализирую...' : 'Проверить документ'}

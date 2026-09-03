@@ -7,13 +7,12 @@ import io
 import json
 import asyncio
 from datetime import datetime
-from fastapi import FastAPI, UploadFile, File, Form, HTTPException, Depends, status, Request
+from fastapi import FastAPI, Form, HTTPException, Depends, status, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 
-from services.parser import extract_text_from_file
 from services.ai_service import analyze_contract
 from services.access import (
     FREE_CHECKS_LIMIT,
@@ -171,7 +170,8 @@ ALLOWED_STANDARDS = {"152-ФЗ", "GDPR", "ISO 27001", "NIS2"}
 
 @app.post("/api/analyze", response_model=None)
 async def analyze_contract_endpoint(
-    file: UploadFile = File(...),
+    file_name: str = Form(...),
+    text: str = Form(...),
     company_name: str = "Test Company",
     standards: list[str] = Form(...),
     doc_type: str = "contract",
@@ -185,8 +185,17 @@ async def analyze_contract_endpoint(
     if not user:
         raise HTTPException(status_code=401, detail="Неверный токен")
 
-    if not file.filename.endswith(('.pdf', '.docx')):
+    if not file_name.endswith(('.pdf', '.docx')):
         raise HTTPException(status_code=400, detail="Поддерживаются только PDF и DOCX")
+
+    # Текст извлекается и (опционально) обезличивается в браузере — см.
+    # frontend/app/lib/extractText.ts, anonymize.ts — сюда приходит уже
+    # готовый текст, а не файл, именно чтобы исходный файл не покидал
+    # браузер пользователя. Пустой текст здесь означает сбой извлечения на
+    # клиенте (например, скан PDF без текстового слоя) — фронтенд уже не
+    # должен был позволить отправку в этом случае, но проверяем и на бэкенде.
+    if not text.strip():
+        raise HTTPException(status_code=400, detail="Не удалось извлечь текст из документа")
 
     if not standards:
         raise HTTPException(status_code=400, detail="Выберите хотя бы один стандарт")
@@ -206,8 +215,6 @@ async def analyze_contract_endpoint(
         )
 
     try:
-        text = await extract_text_from_file(file)
-
         is_full = should_return_full_report(user)
 
         analysis = await analyze_contract(text, standards=standards, doc_type=doc_type)
@@ -230,7 +237,7 @@ async def analyze_contract_endpoint(
 
         report = Report(
             user_id=user.id,
-            file_name=file.filename,
+            file_name=file_name,
             risk_level=risk_level,
             status="processed",
             text_preview=encrypt_data(text[:500] + "..." if len(text) > 500 else text),
@@ -253,7 +260,7 @@ async def analyze_contract_endpoint(
             "status": "processed",
             "report_id": report.id,
             "company": company_name,
-            "file_name": file.filename,
+            "file_name": file_name,
             "text_preview": text[:500] + "..." if len(text) > 500 else text,
             "analysis": analysis,
             "checklist": checklist,
