@@ -4,7 +4,7 @@ export default function robots(): MetadataRoute.Robots {
   return {
     rules: {
       userAgent: '*',
-      allow: ['/', '/standards', '/pricing', '/about', '/offer', '/blog', '/faq'],
+      allow: ['/', '/standards', '/pricing', '/about', '/offer', '/blog', '/faq', '/privacy', '/terms', '/consent'],
       disallow: ['/analyze', '/history', '/report', '/admin'],
     },
     sitemap: 'https://www.ai-compliance.online/sitemap.xml',

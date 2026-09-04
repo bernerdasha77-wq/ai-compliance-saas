@@ -22,6 +22,9 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: `${BASE_URL}/faq`, lastModified, changeFrequency: 'monthly', priority: 0.7 },
     { url: `${BASE_URL}/about`, lastModified, changeFrequency: 'monthly', priority: 0.7 },
     { url: `${BASE_URL}/offer`, lastModified, changeFrequency: 'yearly', priority: 0.7 },
+    { url: `${BASE_URL}/privacy`, lastModified, changeFrequency: 'yearly', priority: 0.7 },
+    { url: `${BASE_URL}/terms`, lastModified, changeFrequency: 'yearly', priority: 0.7 },
+    { url: `${BASE_URL}/consent`, lastModified, changeFrequency: 'yearly', priority: 0.7 },
     ...postEntries,
   ];
 }
