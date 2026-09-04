@@ -191,6 +191,8 @@ export default function Home() {
       }
       setExtractedText(text);
     } catch (err: any) {
+      // eslint-disable-next-line no-console
+      console.error('[extractTextFromFile] сбой извлечения текста:', err);
       setExtractError(err.message || 'Не удалось прочитать файл');
     } finally {
       setExtracting(false);
