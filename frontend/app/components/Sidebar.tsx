@@ -10,7 +10,7 @@ const NAV_ITEMS = [
   { href: '/analyze', label: 'Проверка документа', icon: IconHome },
   { href: '/history', label: 'Мои отчёты', icon: IconHistory },
   { href: '/pricing', label: 'Тарифы', icon: IconTag },
-  { href: '/about', label: 'О проекте', icon: IconInfo },
+  { href: '/faq', label: 'Помощь', icon: IconInfo },
 ];
 
 const ADMIN_EMAIL = 'bernerdasha@yandex.ru';
