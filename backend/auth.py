@@ -75,7 +75,7 @@ def decode_access_token(token: str) -> dict:
 # =========================================================
 # ИСПРАВЛЕННАЯ ФУНКЦИЯ — ПРИНИМАЕТ HTTPAuthorizationCredentials
 # =========================================================
-async def get_user_from_token(credentials: HTTPAuthorizationCredentials, db: Session):
+def get_user_from_token(credentials: HTTPAuthorizationCredentials, db: Session):
     """
     Получает пользователя из объекта HTTPAuthorizationCredentials.
     """

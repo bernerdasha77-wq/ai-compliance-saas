@@ -8,6 +8,7 @@ import json
 import asyncio
 from datetime import datetime
 from fastapi import FastAPI, Form, HTTPException, Depends, status, Request
+from fastapi.concurrency import run_in_threadpool
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
@@ -101,7 +102,7 @@ async def health():
 
 # РЕГИСТРАЦИЯ И ВХОД
 @app.post("/api/register")
-async def register_user(user_data: UserRegister, db: Session = Depends(get_db)):
+def register_user(user_data: UserRegister, db: Session = Depends(get_db)):
     existing_user = db.query(User).filter(User.email == user_data.email).first()
     if existing_user:
         raise HTTPException(status_code=400, detail="Пользователь с таким email уже существует")
@@ -140,7 +141,7 @@ async def register_user(user_data: UserRegister, db: Session = Depends(get_db)):
     }
 
 @app.post("/api/login")
-async def login_user(user_data: UserLogin, db: Session = Depends(get_db)):
+def login_user(user_data: UserLogin, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.email == user_data.email).first()
     if not user:
         raise HTTPException(status_code=401, detail="Неверный email или пароль")
@@ -181,7 +182,7 @@ async def analyze_contract_endpoint(
     if ANALYZE_SUSPENDED:
         raise HTTPException(status_code=503, detail=ANALYZE_SUSPENDED_MESSAGE)
 
-    user = await get_user_from_token(token, db)
+    user = await run_in_threadpool(get_user_from_token, token, db)
     if not user:
         raise HTTPException(status_code=401, detail="Неверный токен")
 
@@ -235,26 +236,30 @@ async def analyze_contract_endpoint(
         if not is_full:
             analysis = strip_violation_details(analysis)
 
-        report = Report(
-            user_id=user.id,
-            file_name=file_name,
-            risk_level=risk_level,
-            status="processed",
-            text_preview=encrypt_data(text[:500] + "..." if len(text) > 500 else text),
-            analysis_results=encrypt_data(json.dumps(analysis, ensure_ascii=False)),
-            checklist=checklist,
-            is_full_report=is_full,
-            created_at=datetime.utcnow()
-        )
-        db.add(report)
+        def _save_report() -> Report:
+            report = Report(
+                user_id=user.id,
+                file_name=file_name,
+                risk_level=risk_level,
+                status="processed",
+                text_preview=encrypt_data(text[:500] + "..." if len(text) > 500 else text),
+                analysis_results=encrypt_data(json.dumps(analysis, ensure_ascii=False)),
+                checklist=checklist,
+                is_full_report=is_full,
+                created_at=datetime.utcnow()
+            )
+            db.add(report)
 
-        # Проверка списывается из подходящего "кармана" пользователя
-        # (подписка → разовый кредит → бесплатный лимит, см. services/access.py)
-        # только после успешного анализа — не тратим лимит на упавшие запросы.
-        consume_check(user)
+            # Проверка списывается из подходящего "кармана" пользователя
+            # (подписка → разовый кредит → бесплатный лимит, см. services/access.py)
+            # только после успешного анализа — не тратим лимит на упавшие запросы.
+            consume_check(user)
 
-        db.commit()
-        db.refresh(report)
+            db.commit()
+            db.refresh(report)
+            return report
+
+        report = await run_in_threadpool(_save_report)
 
         return {
             "status": "processed",
@@ -278,7 +283,7 @@ async def analyze_contract_endpoint(
 # ИНФОРМАЦИЯ О ТАРИФЕ И ОСТАВШИХСЯ ПРОВЕРКАХ
 @app.get("/api/usage")
 async def get_usage(db = Depends(get_db), token: str = Depends(security)):
-    user = await get_user_from_token(token, db)
+    user = get_user_from_token(token, db)
     if not user:
         raise HTTPException(status_code=401, detail="Неверный токен")
 
@@ -290,7 +295,7 @@ async def create_payment_endpoint(tariff: str, db: Session = Depends(get_db), to
     if ANALYZE_SUSPENDED:
         raise HTTPException(status_code=503, detail=ANALYZE_SUSPENDED_MESSAGE)
 
-    user = await get_user_from_token(token, db)
+    user = get_user_from_token(token, db)
     if not user:
         raise HTTPException(status_code=401, detail="Неверный токен")
     if tariff not in TARIFFS:
@@ -352,7 +357,7 @@ def _decode_analysis(encrypted: str) -> dict:
 # ПОЛУЧЕНИЕ ОТЧЁТОВ
 @app.get("/api/reports/{report_id}")
 async def get_report(report_id: int, db: Session = Depends(get_db), token: str = Depends(security)):
-    user = await get_user_from_token(token, db)
+    user = get_user_from_token(token, db)
     if not user:
         raise HTTPException(status_code=401, detail="Неверный токен")
 
@@ -374,7 +379,7 @@ async def get_report(report_id: int, db: Session = Depends(get_db), token: str =
 
 @app.get("/api/reports/user/{user_id}")
 async def get_user_reports(user_id: int, db: Session = Depends(get_db), token: str = Depends(security)):
-    user = await get_user_from_token(token, db)
+    user = get_user_from_token(token, db)
     if not user:
         raise HTTPException(status_code=401, detail="Неверный токен")
     if user_id != user.id and user.email != ADMIN_EMAIL:
@@ -397,7 +402,7 @@ async def get_user_reports(user_id: int, db: Session = Depends(get_db), token: s
 # Теперь админ-доступ определяется email'ом из подписанного JWT, а не тем,
 # что клиент написал в заголовке.
 async def require_admin(db: Session, token: str) -> User:
-    user = await get_user_from_token(token, db)
+    user = get_user_from_token(token, db)
     if not user or user.email != ADMIN_EMAIL:
         raise HTTPException(status_code=403, detail="Доступ запрещён")
     return user
