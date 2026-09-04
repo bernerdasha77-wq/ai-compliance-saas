@@ -23,9 +23,16 @@ async function extractPdfText(file: File): Promise<string> {
 
   let text = '';
   for (let i = 1; i <= doc.numPages; i++) {
-    const page = await doc.getPage(i);
-    const content = await page.getTextContent();
-    text += content.items.map((item) => ('str' in item ? item.str : '')).join(' ') + '\n';
+    try {
+      const page = await doc.getPage(i);
+      const content = await page.getTextContent();
+      text += content.items.map((item) => ('str' in item ? item.str : '')).join(' ') + '\n';
+    } catch {
+      // pdfjs-dist иногда падает на getPage()/getTextContent() для отдельной
+      // страницы с нестандартным содержимым (реальный кейс: воспроизводится
+      // только в настоящем Safari/WebKit, не в тестовой автоматизации) —
+      // пропускаем страницу вместо падения всего извлечения с сырой ошибкой.
+    }
   }
   return text;
 }
