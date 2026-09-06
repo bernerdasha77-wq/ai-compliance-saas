@@ -29,6 +29,8 @@ export default function HistoryPage() {
   const [reports, setReports] = useState<Report[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [confirmingId, setConfirmingId] = useState<number | null>(null);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
 
   useEffect(() => {
     // authReady=false — ещё не проверили localStorage, token/user=null здесь
@@ -71,6 +73,28 @@ export default function HistoryPage() {
     fetchReports();
   }, [token, user, authReady]);
 
+  const handleDelete = async (e: React.MouseEvent, reportId: number) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!token) return;
+
+    setDeletingId(reportId);
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://ai-compliance-saas-6nz5.onrender.com';
+      const response = await fetch(`${apiUrl}/api/reports/${reportId}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!response.ok) throw new Error('Не удалось удалить отчёт');
+      setReports((prev) => prev.filter((r) => r.id !== reportId));
+    } catch (err: any) {
+      setError(err.message || 'Произошла ошибка');
+    } finally {
+      setDeletingId(null);
+      setConfirmingId(null);
+    }
+  };
+
   return (
     <div className="max-w-4xl mx-auto px-6 sm:px-10 py-10">
       <h1 className="text-2xl font-bold text-ink-900 mb-8">Мои отчёты</h1>
@@ -108,6 +132,30 @@ export default function HistoryPage() {
                   <div className="flex items-center gap-3 shrink-0">
                     <RiskBadge level={report.risk_level} />
                     <span className="text-brand text-sm font-medium">Подробнее →</span>
+                    {confirmingId === report.id ? (
+                      <span className="flex items-center gap-2">
+                        <button
+                          onClick={(e) => handleDelete(e, report.id)}
+                          disabled={deletingId === report.id}
+                          className="text-xs font-semibold text-white bg-risk-high px-2.5 py-1 rounded-lg hover:opacity-90 transition disabled:opacity-50"
+                        >
+                          {deletingId === report.id ? 'Удаление...' : 'Удалить?'}
+                        </button>
+                        <button
+                          onClick={(e) => { e.preventDefault(); e.stopPropagation(); setConfirmingId(null); }}
+                          className="text-xs font-medium text-ink-500 hover:text-ink-900 transition"
+                        >
+                          Отмена
+                        </button>
+                      </span>
+                    ) : (
+                      <button
+                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); setConfirmingId(report.id); }}
+                        className="text-xs font-medium text-ink-400 hover:text-risk-high transition"
+                      >
+                        Удалить
+                      </button>
+                    )}
                   </div>
                 </div>
               </Card>

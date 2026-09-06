@@ -4,12 +4,13 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '../lib/auth-context';
-import { IconShield, IconHome, IconHistory, IconTag, IconInfo, IconSettings, IconLogout, IconMenu, IconX } from './icons';
+import { IconShield, IconHome, IconHistory, IconTag, IconInfo, IconUser, IconSettings, IconLogout, IconMenu, IconX } from './icons';
 
 const NAV_ITEMS = [
   { href: '/analyze', label: 'Проверка документа', icon: IconHome },
   { href: '/history', label: 'Мои отчёты', icon: IconHistory },
   { href: '/pricing', label: 'Тарифы', icon: IconTag },
+  { href: '/account', label: 'Личный кабинет', icon: IconUser },
   { href: '/faq', label: 'Помощь', icon: IconInfo },
 ];
 

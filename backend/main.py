@@ -25,7 +25,7 @@ from services.access import (
 )
 from services.payments import TARIFFS, create_payment, apply_payment
 from services.scoring import build_error_result
-from database import get_db, Report, User
+from database import get_db, Report, User, Payment
 from encryption_utils import encrypt_data, decrypt_data
 from auth import get_password_hash, verify_password, needs_rehash, create_access_token, decode_access_token, get_user_from_token, security
 
@@ -289,6 +289,24 @@ async def get_usage(db = Depends(get_db), token: str = Depends(security)):
 
     return account_status(user)
 
+# УДАЛЕНИЕ АККАУНТА (самостоятельное, из личного кабинета) — синхронная функция:
+# только запросы к БД, ни одного await, специально не async def (см. историю
+# про блокировку event loop синхронными вызовами внутри async-хендлеров).
+@app.delete("/api/account")
+def delete_account(db: Session = Depends(get_db), token: str = Depends(security)):
+    user = get_user_from_token(token, db)
+    if not user:
+        raise HTTPException(status_code=401, detail="Неверный токен")
+    if user.email == ADMIN_EMAIL:
+        raise HTTPException(status_code=403, detail="Админ-аккаунт нельзя удалить через личный кабинет")
+
+    # FK на users.id без ON DELETE CASCADE — сначала удаляем зависимые записи.
+    db.query(Report).filter(Report.user_id == user.id).delete()
+    db.query(Payment).filter(Payment.user_id == user.id).delete()
+    db.delete(user)
+    db.commit()
+    return {"status": "deleted"}
+
 # ОПЛАТА (ЮKassa)
 @app.post("/api/payments/create")
 async def create_payment_endpoint(tariff: str, db: Session = Depends(get_db), token: str = Depends(security)):
@@ -376,6 +394,20 @@ async def get_report(report_id: int, db: Session = Depends(get_db), token: str =
         "is_full_report": report.is_full_report,
         "created_at": report.created_at.isoformat()
     }
+
+@app.delete("/api/reports/{report_id}")
+def delete_report(report_id: int, db: Session = Depends(get_db), token: str = Depends(security)):
+    user = get_user_from_token(token, db)
+    if not user:
+        raise HTTPException(status_code=401, detail="Неверный токен")
+
+    report = db.query(Report).filter(Report.id == report_id).first()
+    if not report or (report.user_id != user.id and user.email != ADMIN_EMAIL):
+        raise HTTPException(status_code=404, detail="Отчёт не найден")
+
+    db.delete(report)
+    db.commit()
+    return {"status": "deleted"}
 
 @app.get("/api/reports/user/{user_id}")
 async def get_user_reports(user_id: int, db: Session = Depends(get_db), token: str = Depends(security)):
