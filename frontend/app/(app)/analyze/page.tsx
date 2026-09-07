@@ -183,18 +183,16 @@ export default function Home() {
     formData.append('file_name', file.name);
     formData.append('text', textToSend);
     formData.append('company_name', 'Тестовая компания');
+    formData.append('doc_type', docType);
     selectedStandards.forEach((s) => formData.append('standards', s));
 
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://ai-compliance-saas-6nz5.onrender.com';
-      const response = await fetch(
-        `${apiUrl}/api/analyze?company_name=Тестовая компания&doc_type=${docType}`,
-        {
-          method: 'POST',
-          headers: { Authorization: `Bearer ${token}` },
-          body: formData,
-        }
-      );
+      const response = await fetch(`${apiUrl}/api/analyze`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData,
+      });
 
       if (response.status === 401) {
         openAuth();

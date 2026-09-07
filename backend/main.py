@@ -46,7 +46,16 @@ ANALYZE_SUSPENDED = False
 ANALYZE_SUSPENDED_MESSAGE = "Сервис временно приостановлен для технического обслуживания"
 
 # ПРИЛОЖЕНИЕ
-app = FastAPI(title="AI Compliance SaaS")
+# /docs, /redoc, /openapi.json закрыты по умолчанию — это готовая карта
+# всех эндпоинтов для потенциального атакующего, если она не нужна публично.
+# Для локальной разработки — ENABLE_API_DOCS=true в .env.
+ENABLE_API_DOCS = os.getenv("ENABLE_API_DOCS", "false").lower() == "true"
+app = FastAPI(
+    title="AI Compliance SaaS",
+    docs_url="/docs" if ENABLE_API_DOCS else None,
+    redoc_url="/redoc" if ENABLE_API_DOCS else None,
+    openapi_url="/openapi.json" if ENABLE_API_DOCS else None,
+)
 
 # РУЧНОЙ КОНТРОЛЬ CORS — раньше был "*" (любой сайт в интернете мог слать
 # запросы к API из браузера пользователя); список ограничен явно известными
@@ -173,9 +182,9 @@ ALLOWED_STANDARDS = {"152-ФЗ", "GDPR", "ISO 27001", "NIS2"}
 async def analyze_contract_endpoint(
     file_name: str = Form(...),
     text: str = Form(...),
-    company_name: str = "Test Company",
+    company_name: str = Form("Test Company"),
     standards: list[str] = Form(...),
-    doc_type: str = "contract",
+    doc_type: str = Form("contract"),
     db = Depends(get_db),
     token: str = Depends(security)
 ):
