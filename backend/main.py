@@ -25,6 +25,7 @@ from services.access import (
 )
 from services.payments import TARIFFS, create_payment, apply_payment
 from services.scoring import build_error_result
+from services.telegram import send_start_message
 from database import get_db, Report, User, Payment
 from encryption_utils import encrypt_data, decrypt_data
 from auth import get_password_hash, verify_password, needs_rehash, create_access_token, decode_access_token, get_user_from_token, security
@@ -107,6 +108,24 @@ async def root():
 
 @app.get("/health")
 async def health():
+    return {"status": "ok"}
+
+# TELEGRAM-БОТ — первая версия: только /start (приветствие + ссылки на
+# сайт), файлы не принимает и не анализирует (см. services/telegram.py).
+# X-Telegram-Bot-Api-Secret-Token сверяется с TELEGRAM_WEBHOOK_SECRET —
+# без этого любой в интернете мог бы дёргать вебхук произвольным chat_id
+# и заставлять бота слать сообщения посторонним пользователям Telegram.
+@app.post("/telegram/webhook")
+def telegram_webhook(body: dict, request: Request):
+    expected_secret = os.getenv("TELEGRAM_WEBHOOK_SECRET")
+    if expected_secret and request.headers.get("X-Telegram-Bot-Api-Secret-Token") != expected_secret:
+        raise HTTPException(status_code=403, detail="Invalid secret token")
+
+    message = body.get("message") or {}
+    if message.get("text") == "/start":
+        chat_id = message.get("chat", {}).get("id")
+        if chat_id:
+            send_start_message(chat_id)
     return {"status": "ok"}
 
 # РЕГИСТРАЦИЯ И ВХОД
