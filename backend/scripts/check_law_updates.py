@@ -38,17 +38,15 @@ TELEGRAM_ADMIN_CHAT_ID (см. main.py/.env.example — тот же бот, чт�
 тащить в лёгкий еженедельный скрипт тяжёлые зависимости (lxml тут не нужен,
 поэтому и не импортируется).
 """
-import hashlib
 import os
 import re
 import sys
-from datetime import datetime
 
 import httpx
 import psycopg2
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from services.telegram import send_message  # noqa: E402
+from law_monitor_common import check_source  # noqa: E402
 
 # GDPR/NIS2 (EUR-Lex) НАМЕРЕННО не в списке: eur-lex.europa.eu стоит за
 # AWS WAF с JS-челленджем (проверено: любой обычный HTTP-запрос —
@@ -94,60 +92,11 @@ SOURCES = {
     "152-ФЗ": resolve_latest_152fz_url,
 }
 
-NOTIFY_TEMPLATE = (
-    "Текст источника {source} изменился ({url}). "
-    "Проверьте вручную перед переиндексацией RAG."
-)
 
-
-def fetch_hash(url: str) -> str:
+def fetch_content(url: str) -> bytes:
     response = httpx.get(url, timeout=30, follow_redirects=True, headers={"User-Agent": "Mozilla/5.0"})
     response.raise_for_status()
-    return hashlib.sha256(response.content).hexdigest()
-
-
-def check_source(cur, source_name: str, url: str) -> None:
-    new_hash = fetch_hash(url)
-    now = datetime.utcnow()
-
-    cur.execute("SELECT hash FROM law_source_hashes WHERE source_name = %s", (source_name,))
-    row = cur.fetchone()
-
-    if row is None:
-        # Первый запуск для этого источника — просто фиксируем базовую
-        # линию, сравнивать пока не с чем, уведомление не отправляем.
-        cur.execute(
-            "INSERT INTO law_source_hashes (source_name, url, hash, last_checked_at, last_changed_at) "
-            "VALUES (%s, %s, %s, %s, %s)",
-            (source_name, url, new_hash, now, now),
-        )
-        print(f"[check_law_updates] {source_name}: первый запуск, базовая линия зафиксирована")
-        return
-
-    old_hash = row[0]
-    if new_hash == old_hash:
-        cur.execute(
-            "UPDATE law_source_hashes SET last_checked_at = %s WHERE source_name = %s",
-            (now, source_name),
-        )
-        print(f"[check_law_updates] {source_name}: без изменений")
-        return
-
-    # Хэш изменился — уведомляем и сразу обновляем сохранённый хэш, чтобы
-    # при следующем запуске (через неделю) не отправить то же самое
-    # уведомление повторно, если источник больше не менялся.
-    chat_id = os.getenv("TELEGRAM_ADMIN_CHAT_ID")
-    if chat_id:
-        send_message(chat_id, NOTIFY_TEMPLATE.format(source=source_name, url=url))
-    else:
-        print(f"[check_law_updates] TELEGRAM_ADMIN_CHAT_ID не задан — уведомление о {source_name} не отправлено")
-
-    cur.execute(
-        "UPDATE law_source_hashes SET hash = %s, last_checked_at = %s, last_changed_at = %s "
-        "WHERE source_name = %s",
-        (new_hash, now, now, source_name),
-    )
-    print(f"[check_law_updates] {source_name}: ИЗМЕНЕНИЕ обнаружено, уведомление отправлено")
+    return response.content
 
 
 def main() -> None:
@@ -157,7 +106,8 @@ def main() -> None:
         for source_name, resolve_url in SOURCES.items():
             try:
                 url = resolve_url()
-                check_source(cur, source_name, url)
+                content = fetch_content(url)
+                check_source(cur, source_name, url, content, log_prefix="check_law_updates")
                 conn.commit()
             except (httpx.HTTPError, RuntimeError) as e:
                 conn.rollback()
