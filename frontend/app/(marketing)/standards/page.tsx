@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import Card from '../../components/ui/Card';
-import { IconAlertTriangle } from '../../components/icons';
+import { IconAlertTriangle, IconHistory } from '../../components/icons';
 
 const TITLE = 'Штрафы по 152-ФЗ, GDPR, NIS2, ISO 27001 — проверка документов на соответствие';
 const DESCRIPTION =
@@ -39,6 +39,7 @@ const STANDARDS = [
     id: '152-fz',
     title: '152-ФЗ «О персональных данных»',
     badge: 'official' as const,
+    monitored: true,
     description:
       'Регулирует обработку персональных данных в России. С декабря 2024 года (ФЗ №420) штрафы за утечки резко выросли и зависят от масштаба:',
     fines: [
@@ -54,6 +55,7 @@ const STANDARDS = [
     id: 'gdpr',
     title: 'GDPR',
     badge: 'official' as const,
+    monitored: true,
     description:
       'Регламент ЕС о защите данных — действует экстерриториально: применяется к любой компании, обрабатывающей данные пользователей из ЕС, включая российские. Максимальный штраф: €20 млн или 4% годового глобального оборота — в зависимости от того, что больше.',
     checks:
@@ -63,6 +65,7 @@ const STANDARDS = [
     id: 'nis2',
     title: 'NIS2 (Directive (EU) 2022/2555)',
     badge: 'official' as const,
+    monitored: true,
     description:
       'Директива ЕС о кибербезопасности для критической инфраструктуры и цифровых сервисов. Делит компании на «существенные» и «важные» организации в 11+ секторах. Существенные организации — до €10 млн / 2% оборота. Важные организации — до €7 млн / 1,4% оборота.',
     checks:
@@ -119,10 +122,17 @@ export default function StandardsPage() {
               </div>
             )}
 
-            <p className="text-sm">
+            <p className="text-sm mb-2">
               <span className="font-medium text-ink-900">Проверяем: </span>
               <span className="text-ink-500">{std.checks}</span>
             </p>
+
+            {std.monitored && (
+              <p className="text-xs text-ink-400 flex items-center gap-1.5">
+                <IconHistory className="w-3.5 h-3.5" />
+                Источник проверяется на изменения раз в неделю
+              </p>
+            )}
           </Card>
         ))}
       </div>
