@@ -40,6 +40,7 @@ TELEGRAM_ADMIN_CHAT_ID (см. main.py/.env.example — тот же бот, чт�
 """
 import hashlib
 import os
+import re
 import sys
 from datetime import datetime
 
@@ -56,15 +57,41 @@ from services.telegram import send_message  # noqa: E402
 # отсюда либо ничего не поймать, либо ловить исключительно ложные
 # срабатывания на самой странице-заглушке. Именно поэтому ingest_laws.py
 # тоже не скачивает эти страницы сам, а читает вручную сохранённый HTML.
-# Мониторинг GDPR/NIS2 отложен до отдельного решения (headless-браузер в
-# отдельном облегчённом образе — Playwright проходит такие JS-челленджи,
-# обычный httpx — нет).
+# Мониторинг GDPR/NIS2 сделан отдельно, через GitHub Actions + Playwright
+# (см. .github/workflows/check-eu-law-updates.yml) — headless-браузер
+# проходит такие JS-челленджи, обычный httpx — нет.
+
+# pravo.gov.ru хранит ВСЕ редакции (версии) одного закона под одним и тем
+# же документом (nd=102108261), переключаемых параметром link_id в URL.
+# link_id=0 — это "Исходная редакция", застывший текст 2006 года, который
+# НИКОГДА не меняется — мониторить его бессмысленно (проверено вручную:
+# именно на такой URL изначально и настроили мониторинг, обнаружили это
+# при ручной проверке). Действующая (последняя) редакция — это каждый раз
+# новый, растущий номер: на момент внедрения — 38-я (26.07.2026, № 265-ФЗ).
+# Поэтому URL для 152-ФЗ не статичный — resolve_latest_152fz_url() каждый
+# раз сама находит актуальный номер редакции перед проверкой хэша.
+PRAVO_152FZ_BASE = (
+    "http://pravo.gov.ru/proxy/ips/?docbody=&link_id={link_id}&nd=102108261&bpa=cd00000"
+    "&bpas=cd00000&intelsearch=%F4%E7+152+%EE+%EF%E5%F0%F1%EE%ED%E0%EB%FC%ED%FB%F5"
+    "+%E4%E0%ED%ED%FB%F5++&firstDoc=1"
+)
+
+
+def resolve_latest_152fz_url() -> str:
+    response = httpx.get(
+        PRAVO_152FZ_BASE.format(link_id=0), timeout=30, follow_redirects=True,
+        headers={"User-Agent": "Mozilla/5.0"},
+    )
+    response.raise_for_status()
+    text = response.content.decode("windows-1251", errors="replace")
+    editions = [int(n) for n in re.findall(r"<option value='(\d+),102108261'", text)]
+    if not editions:
+        raise RuntimeError("Не нашла список редакций 152-ФЗ на странице pravo.gov.ru — вёрстка могла измениться")
+    return PRAVO_152FZ_BASE.format(link_id=max(editions))
+
+
 SOURCES = {
-    "152-ФЗ": (
-        "http://pravo.gov.ru/proxy/ips/?docbody=&link_id=0&nd=102108261&bpa=cd00000"
-        "&bpas=cd00000&intelsearch=%F4%E7+152+%EE+%EF%E5%F0%F1%EE%ED%E0%EB%FC%ED%FB%F5"
-        "+%E4%E0%ED%ED%FB%F5++&firstDoc=1"
-    ),
+    "152-ФЗ": resolve_latest_152fz_url,
 }
 
 NOTIFY_TEMPLATE = (
@@ -127,11 +154,12 @@ def main() -> None:
     conn = psycopg2.connect(os.environ["DATABASE_URL"])
     try:
         cur = conn.cursor()
-        for source_name, url in SOURCES.items():
+        for source_name, resolve_url in SOURCES.items():
             try:
+                url = resolve_url()
                 check_source(cur, source_name, url)
                 conn.commit()
-            except httpx.HTTPError as e:
+            except (httpx.HTTPError, RuntimeError) as e:
                 conn.rollback()
                 print(f"[check_law_updates] {source_name}: не удалось загрузить страницу — {e}")
     finally:
