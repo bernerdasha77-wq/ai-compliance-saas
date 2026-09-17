@@ -1,0 +1,41 @@
+name: Check EU law updates (GDPR/NIS2)
+
+# Мониторинг изменений источников GDPR/NIS2 на EUR-Lex (см.
+# backend/scripts/check_eu_law_updates.py) — отдельно от 152-ФЗ, который
+# мониторится на Fly Machines по расписанию (там не нужен headless-браузер).
+# Здесь он нужен: eur-lex.europa.eu стоит за WAF с JS-челленджем, обычный
+# HTTP-запрос его не проходит.
+#
+# Только schedule + ручной запуск — секреты (DATABASE_URL, реальная
+# прод-база) не выдаются форкам/чужим Pull Request'ам, здесь такого
+# триггера нет вообще.
+
+on:
+  schedule:
+    - cron: '0 9 * * 1'  # каждый понедельник, 09:00 UTC — «примерно раз в неделю», как и 152-ФЗ на Fly
+  workflow_dispatch: {}  # кнопка "Run workflow" в GitHub — для ручного теста без ожидания расписания
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: |
+          pip install httpx==0.24.1 psycopg2-binary==2.9.9 playwright==1.63.0
+          playwright install --with-deps chromium
+
+      - name: Run check
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_ADMIN_CHAT_ID: ${{ secrets.TELEGRAM_ADMIN_CHAT_ID }}
+        run: python scripts/check_eu_law_updates.py
