@@ -42,6 +42,7 @@ export async function generateMetadata({
   return {
     title: `${title} — AI Compliance Checker`,
     description,
+    alternates: { canonical: `/blog/${slug}` },
     openGraph: {
       title,
       description,

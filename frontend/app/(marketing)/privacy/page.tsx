@@ -8,6 +8,7 @@ const DESCRIPTION = 'Как AI Compliance Checker обрабатывает пе�
 export const metadata: Metadata = {
   title: TITLE,
   description: DESCRIPTION,
+  alternates: { canonical: '/privacy' },
   openGraph: {
     title: TITLE,
     description: DESCRIPTION,

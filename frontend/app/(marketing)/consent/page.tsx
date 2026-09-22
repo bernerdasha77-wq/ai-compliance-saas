@@ -8,6 +8,7 @@ const DESCRIPTION = 'Полный текст согласия на обрабо�
 export const metadata: Metadata = {
   title: TITLE,
   description: DESCRIPTION,
+  alternates: { canonical: '/consent' },
   openGraph: {
     title: TITLE,
     description: DESCRIPTION,

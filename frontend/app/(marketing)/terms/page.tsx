@@ -8,6 +8,7 @@ const DESCRIPTION = 'Правила использования сайта и с�
 export const metadata: Metadata = {
   title: TITLE,
   description: DESCRIPTION,
+  alternates: { canonical: '/terms' },
   openGraph: {
     title: TITLE,
     description: DESCRIPTION,

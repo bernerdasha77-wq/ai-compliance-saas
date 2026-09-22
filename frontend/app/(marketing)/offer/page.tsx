@@ -8,6 +8,7 @@ const DESCRIPTION = 'Условия предоставления доступа 
 export const metadata: Metadata = {
   title: TITLE,
   description: DESCRIPTION,
+  alternates: { canonical: '/offer' },
   openGraph: {
     title: TITLE,
     description: DESCRIPTION,

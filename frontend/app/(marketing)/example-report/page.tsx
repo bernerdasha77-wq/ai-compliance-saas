@@ -1,8 +1,17 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import Card from '../../components/ui/Card';
 import ScoreSummary from '../../components/ScoreSummary';
 import RiskList from '../../components/RiskList';
 import { Violation, StandardScore } from '../../lib/types';
+
+// title/description здесь не были заданы и до этого фикса — страница
+// наследовала общий title сайта из корневого layout.tsx. Не меняю это
+// сейчас, добавляю только canonical (отдельная тема — не выбранная не
+// глядя формулировка title/description).
+export const metadata: Metadata = {
+  alternates: { canonical: '/example-report' },
+};
 
 const STANDARDS: StandardScore[] = [
   { name: 'GDPR', score: 91 },
