@@ -5,12 +5,21 @@ import ScoreSummary from '../../components/ScoreSummary';
 import RiskList from '../../components/RiskList';
 import { Violation, StandardScore } from '../../lib/types';
 
-// title/description здесь не были заданы и до этого фикса — страница
-// наследовала общий title сайта из корневого layout.tsx. Не меняю это
-// сейчас, добавляю только canonical (отдельная тема — не выбранная не
-// глядя формулировка title/description).
+const TITLE = 'Пример отчёта — AI Compliance Checker';
+const DESCRIPTION =
+  'Как выглядит отчёт AI Compliance Checker: найденные нарушения по 152-ФЗ, GDPR, ISO 27001 и NIS2, оценка риска и готовые формулировки для исправления — на примере реального документа.';
+
 export const metadata: Metadata = {
+  title: TITLE,
+  description: DESCRIPTION,
   alternates: { canonical: '/example-report' },
+  openGraph: {
+    title: TITLE,
+    description: DESCRIPTION,
+    url: '/example-report',
+    type: 'website',
+    locale: 'ru_RU',
+  },
 };
 
 const STANDARDS: StandardScore[] = [
