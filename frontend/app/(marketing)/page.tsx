@@ -13,7 +13,7 @@ import {
   IconKey,
 } from '../components/icons';
 
-const TITLE = 'AI Compliance Checker — проверка договоров на соответствие 152-ФЗ, GDPR, ISO 27001';
+const TITLE = 'Проверка политики конфиденциальности по 152-ФЗ и GDPR онлайн — AI Compliance Checker';
 const DESCRIPTION =
   'AI-анализ договоров, EULA и политик конфиденциальности на соответствие 152-ФЗ, GDPR, ISO 27001 и NIS2. Найдите риски и получите готовые формулировки для исправления за пару минут.';
 
@@ -37,7 +37,7 @@ const steps = [
 ];
 
 const security = [
-  { icon: IconLock, title: 'Документ не хранится', text: 'Анализируется в оперативной памяти и удаляется сразу после обработки — не остаётся ни на сервере, ни в базе данных.' },
+  { icon: IconLock, title: 'Файл не покидает браузер', text: 'Документ разбирается прямо в браузере. На анализ уходит только текст — уже частично обезличенный — а не сам файл, и он удаляется сразу после обработки.' },
   { icon: IconGlobe, title: 'Передача защищена', text: 'Все данные передаются по HTTPS — защищённому каналу связи.' },
   { icon: IconInfo, title: 'Как обрабатывается документ', text: 'Для анализа документ временно обрабатывается AI-моделью. Подробности о том, как обрабатываются ваши данные — в политике конфиденциальности.' },
   { icon: IconKey, title: 'Пароли защищены', text: 'Хранятся в виде необратимого хеша (bcrypt) — даже мы не можем увидеть ваш пароль.' },
@@ -81,14 +81,14 @@ export default function LandingPage() {
       <section className="max-w-6xl mx-auto px-6 sm:px-10 pt-16 pb-20 grid md:grid-cols-2 gap-12 items-center">
         <div>
           <p className="text-xs font-semibold tracking-widest text-brand uppercase mb-4">
-            AI-анализ документов
+            Проверка по 152-ФЗ и GDPR
           </p>
           <h1 className="text-4xl sm:text-5xl font-bold text-ink-900 leading-tight mb-5">
             Найдите риски до того, как они станут проблемой.
           </h1>
           <p className="text-lg text-ink-700 leading-relaxed mb-8 max-w-lg">
-            Загрузите договор, EULA или политику конфиденциальности — AI проверит соответствие
-            152-ФЗ, GDPR, ISO 27001 и NIS2 за минуты, а не часы работы юриста.
+            Загрузите политику конфиденциальности, договор или EULA — AI найдёт нарушения и
+            предложит готовые формулировки. Первая проверка бесплатно.
           </p>
           <Link
             href="/analyze"

@@ -18,6 +18,8 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: BASE_URL, lastModified, changeFrequency: 'monthly', priority: 1 },
     { url: `${BASE_URL}/standards`, lastModified, changeFrequency: 'monthly', priority: 0.8 },
     { url: `${BASE_URL}/pricing`, lastModified, changeFrequency: 'monthly', priority: 0.8 },
+    { url: `${BASE_URL}/proverka-politiki-konfidencialnosti`, lastModified, changeFrequency: 'monthly', priority: 0.8 },
+    { url: `${BASE_URL}/152-fz-i-gdpr`, lastModified, changeFrequency: 'monthly', priority: 0.8 },
     { url: `${BASE_URL}/blog`, lastModified, changeFrequency: 'weekly', priority: 0.7 },
     { url: `${BASE_URL}/faq`, lastModified, changeFrequency: 'monthly', priority: 0.7 },
     { url: `${BASE_URL}/about`, lastModified, changeFrequency: 'monthly', priority: 0.7 },
