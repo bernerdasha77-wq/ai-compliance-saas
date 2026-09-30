@@ -6,13 +6,22 @@ RISK_WEIGHTS = {"high": 15, "medium": 7, "low": 2}
 
 VALID_RISK_LEVELS = set(RISK_WEIGHTS.keys())
 
+# Вариант "B" стабилизации score (см. историю в чате/fix-analysis-quality.md):
+# документ с одной и той же реальной серьёзностью проблем не должен получать
+# сильно разный (и не должен проваливаться в ноль) score только из-за того,
+# что модель в конкретном прогоне нашла 8 находок вместо 11 — в штраф идут
+# только N САМЫХ ТЯЖЁЛЫХ находок (по весу), остальные по-прежнему показываются
+# пользователю в списке нарушений, просто не давят на итоговую цифру дальше.
+TOP_N_FOR_SCORE = 5
 
-def _risk_label(score: int) -> str:
-    if score >= 80:
-        return "низкий"
-    if score >= 50:
-        return "средний"
-    return "высокий"
+# Если среди находок есть хотя бы одна "high" — score не может быть выше этого
+# потолка и risk_label всегда "высокий", независимо от суммы весов (иначе
+# документ с одним тяжёлым, но единственным нарушением мог бы получить
+# обманчиво высокий score просто потому, что остальных находок мало).
+HIGH_RISK_SCORE_CAP = 60
+
+_RISK_ORDER = {"high": 3, "medium": 2, "low": 1}
+_RISK_LABELS = {"high": "высокий", "medium": "средний", "low": "низкий"}
 
 
 def _match_standard(name: str, standards: list[str]) -> str | None:
@@ -28,26 +37,56 @@ def _match_standard(name: str, standards: list[str]) -> str | None:
     return None
 
 
+def _worst_risk_level(violations: list[dict]) -> str | None:
+    """Самый серьёзный risk_level среди находок, или None, если находок нет."""
+    worst = None
+    for v in violations:
+        level = v.get("risk_level")
+        if level not in _RISK_ORDER:
+            continue
+        if worst is None or _RISK_ORDER[level] > _RISK_ORDER[worst]:
+            worst = level
+    return worst
+
+
+def _score_for(violations: list[dict]) -> int:
+    """Штраф считается только по TOP_N_FOR_SCORE самым тяжёлым находкам —
+    остальные не углубляют падение score (см. TOP_N_FOR_SCORE выше)."""
+    weights = sorted(
+        (RISK_WEIGHTS.get(v.get("risk_level"), RISK_WEIGHTS["medium"]) for v in violations),
+        reverse=True,
+    )
+    penalty = sum(weights[:TOP_N_FOR_SCORE])
+    score = max(0, min(100, 100 - penalty))
+
+    if _worst_risk_level(violations) == "high":
+        score = min(score, HIGH_RISK_SCORE_CAP)
+
+    return score
+
+
 def compute_scores(violations: list[dict], standards: list[str]) -> tuple[int, str, list[dict]]:
     """Считает общий score (0-100), текстовую метку риска и score по
     каждому стандарту — детерминированно, на основе весов risk_level.
     Не зависит от того, как DeepSeek сформулировал общий вывод, поэтому
-    исключает рассинхронизацию текста и цифр."""
-    overall = 100
-    per_standard = {s: 100 for s in standards}
+    исключает рассинхронизацию текста и цифр.
 
-    for v in violations:
-        weight = RISK_WEIGHTS.get(v.get("risk_level"), RISK_WEIGHTS["medium"])
-        overall -= weight
-        matched = _match_standard(v.get("standard", ""), standards)
-        if matched:
-            per_standard[matched] -= weight
+    risk_label определяется САМОЙ СЕРЬЁЗНОЙ находкой (а не числовым порогом
+    score) — "высокий", если есть хотя бы одна high-находка (см.
+    HIGH_RISK_SCORE_CAP выше), иначе "средний"/"низкий" по худшей находке,
+    иначе (находок нет вовсе) "низкий"."""
+    overall = _score_for(violations)
 
-    overall = max(0, min(100, overall))
-    per_standard = {k: max(0, min(100, v)) for k, v in per_standard.items()}
+    worst = _worst_risk_level(violations)
+    risk_label = _RISK_LABELS.get(worst, "низкий")
+
+    per_standard = {}
+    for s in standards:
+        s_violations = [v for v in violations if _match_standard(v.get("standard", ""), [s])]
+        per_standard[s] = _score_for(s_violations)
 
     standards_out = [{"name": name, "score": score} for name, score in per_standard.items()]
-    return overall, _risk_label(overall), standards_out
+    return overall, risk_label, standards_out
 
 
 def _normalize_suggested_wording(value) -> list[str]:

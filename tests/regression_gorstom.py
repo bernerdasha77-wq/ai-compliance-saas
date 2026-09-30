@@ -1,18 +1,19 @@
 #!/usr/bin/env python3
 """
-Регрессионный тест на реальном документе (см. fix-analysis-quality.md, часть C).
+Регрессионный тест на реальных документах (см. fix-analysis-quality.md, часть C).
 
-Прогоняет tests/fixtures/gorstom-policy.txt через ПОЛНЫЙ реальный пайплайн —
-без дублирования логики на Python:
+Прогоняет фикстуры из tests/fixtures/ через ПОЛНЫЙ реальный пайплайн — без
+дублирования логики на Python:
 
   1. Анонимизация — настоящий frontend/app/lib/anonymize.ts (тот же код,
      что использует сайт в браузере), вызванный через node (tests/anonymize_runner.js).
   2. Промпт — настоящий backend/services/prompts.py (build_prompt).
   3. Анализ — настоящий backend/services/ai_privacy.deepseek_analyze
      (реальный вызов DeepSeek, не мок).
-  4. Проверка ожидаемых/неожиданных находок по результату.
+  4. Проверка ожидаемых/неожиданных находок и (опционально) минимального score.
 
-Запуск: backend/venv/bin/python3 tests/regression_gorstom.py [--runs N] [--standards 152-ФЗ,GDPR]
+Запуск:
+  backend/venv/bin/python3 tests/regression_gorstom.py [--runs N] [--doc gorstom|own-privacy|all]
 """
 import argparse
 import asyncio
@@ -22,8 +23,8 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-FIXTURE = ROOT / "tests" / "fixtures" / "gorstom-policy.txt"
-COMPILED_DIR = ROOT / "tests" / "fixtures" / ".compiled"
+FIXTURES_DIR = ROOT / "tests" / "fixtures"
+COMPILED_DIR = FIXTURES_DIR / ".compiled"
 ANONYMIZE_TS = ROOT / "frontend" / "app" / "lib" / "anonymize.ts"
 TSC = ROOT / "frontend" / "node_modules" / ".bin" / "tsc"
 RUNNER_JS = ROOT / "tests" / "anonymize_runner.js"
@@ -33,8 +34,8 @@ sys.path.insert(0, str(ROOT / "backend"))
 
 def compile_anonymize() -> Path:
     """Компилирует anonymize.ts в CommonJS, чтобы вызвать его из Node —
-    без дублирования логики анонимизации на Python (см. требование к части C).
-    Файл не имеет внешних импортов, поэтому компилируется автономно."""
+    без дублирования логики анонимизации на Python. Файл не имеет внешних
+    импортов, поэтому компилируется автономно."""
     COMPILED_DIR.mkdir(parents=True, exist_ok=True)
     subprocess.run(
         [
@@ -60,16 +61,16 @@ def _joined(v: dict) -> str:
     return " ".join(parts).lower()
 
 
-# Проверки подобраны по РЕАЛЬНОМУ содержимому tests/fixtures/gorstom-policy.txt
-# (см. отчёт в чате) — не по описанию в fix-analysis-quality.md буквально: та
+# Проверки для gorstom-policy.txt подобраны по РЕАЛЬНОМУ содержимому файла
+# (см. историю в чате) — не по описанию в fix-analysis-quality.md буквально: та
 # формулировка сценария ("info@www.gorstom.ru в одном документе, info@gorstom.ru
 # в соседнем") описывала сравнение ДВУХ разных документов с сайта, а у нас
-# только один файл (gorstom-policy.docx) — внутри него email везде одинаковый
-# (info@www.gorstom.ru), поэтому этот конкретный кейс не воспроизводим на
-# одной фикстуре. Вместо него — реальное внутреннее противоречие, которое
-# документ действительно содержит: заявление "данные никогда не передаются
-# третьим лицам" при одновременном использовании Яндекс.Метрики.
-CHECKS = [
+# только один файл (gorstom-policy.docx) — внутри него email везде одинаковый,
+# поэтому этот конкретный кейс не воспроизводим на одной фикстуре. Вместо него
+# — реальное внутреннее противоречие, которое документ действительно содержит:
+# заявление "данные никогда не передаются третьим лицам" при одновременном
+# использовании Яндекс.Метрики.
+GORSTOM_CHECKS = [
     {
         "name": "Оператор не назван как юрлицо (назван только сайт)",
         "expect_found": True,
@@ -103,9 +104,61 @@ CHECKS = [
     {
         "name": "НЕ должно быть находки о трансграничной передаче (Яндекс.Метрика — российский сервис)",
         "expect_found": False,
-        "match": lambda v: "трансгранич" in _joined(v),
+        # Только по заголовку: заголовок показывает, что находка ПОСВЯЩЕНА
+        # трансграничной передаче — в отличие от description/recommendation,
+        # где слово иногда всплывает мимоходом в рекомендации к ДРУГОЙ находке
+        # (не являясь отдельным нарушением), что раньше давало ложный FAIL теста.
+        "match": lambda v: "трансгранич" in (v.get("title") or "").lower(),
     },
 ]
+
+# Собственная политика конфиденциальности сервиса (ai-compliance.online/privacy)
+# — эталонный "хороший" документ: ожидаем высокий score и отсутствие находок
+# высокого риска. Если найдутся — это сигнал либо о реальной проблеме в
+# документе, либо о ложном срабатывании модели, разбираем по факту вывода.
+OWN_PRIVACY_CHECKS = [
+    {
+        "name": "Нет находок высокого риска (risk_level=high)",
+        "expect_found": False,
+        "match": lambda v: v.get("risk_level") == "high",
+    },
+]
+
+DOCUMENTS = {
+    "gorstom": {
+        "label": "Горстом (gorstom.ru/policy)",
+        "fixture": FIXTURES_DIR / "gorstom-policy.txt",
+        "standards": ["152-ФЗ"],
+        "checks": GORSTOM_CHECKS,
+        "min_score": None,
+    },
+    "own-privacy": {
+        "label": "Собственная политика (ai-compliance.online/privacy)",
+        "fixture": FIXTURES_DIR / "ai-compliance-privacy.txt",
+        "standards": ["152-ФЗ"],
+        "checks": OWN_PRIVACY_CHECKS,
+        "min_score": 80,
+    },
+    # Два реальных документа независимой компании (сеть стоматологических
+    # клиник «Камелия-Мед») — без заранее заданных ожиданий по конкретным
+    # находкам (в отличие от gorstom/own-privacy, для них никто не формулировал
+    # "должно/не должно быть найдено"), просто дополнительные точки данных для
+    # наблюдения за score на разных по качеству реальных документах.
+    "kamelia-privacy-policy": {
+        "label": "Камелия-Мед — Политика конфиденциальности (типовая, 4 стр.)",
+        "fixture": FIXTURES_DIR / "kamelia-privacy-policy.txt",
+        "standards": ["152-ФЗ"],
+        "checks": [],
+        "min_score": None,
+    },
+    "kamelia-pd-position": {
+        "label": "Камелия-Мед — Политика в отношении обработки ПДн (формальная, 13 стр.)",
+        "fixture": FIXTURES_DIR / "kamelia-pd-position.txt",
+        "standards": ["152-ФЗ"],
+        "checks": [],
+        "min_score": None,
+    },
+}
 
 
 async def run_once(anonymized_text: str, standards: list[str]) -> dict:
@@ -113,58 +166,55 @@ async def run_once(anonymized_text: str, standards: list[str]) -> dict:
     return await deepseek_analyze(anonymized_text, standards)
 
 
-def evaluate(result: dict) -> list[dict]:
+def evaluate(result: dict, checks: list[dict], min_score: int | None) -> list[dict]:
     violations = result.get("violations", [])
     outcomes = []
-    for check in CHECKS:
+    for check in checks:
         matches = [v for v in violations if check["match"](v)]
         found = len(matches) > 0
         passed = found == check["expect_found"]
         outcomes.append({
-            "name": check["name"],
-            "expect_found": check["expect_found"],
-            "found": found,
-            "passed": passed,
-            "matches": matches,
+            "name": check["name"], "expect_found": check["expect_found"],
+            "found": found, "passed": passed, "matches": matches,
+        })
+    if min_score is not None:
+        score = result.get("score", 0)
+        passed = score >= min_score
+        outcomes.append({
+            "name": f"Score >= {min_score}", "expect_found": True,
+            "found": passed, "passed": passed, "matches": [], "score": score,
         })
     return outcomes
 
 
-def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--runs", type=int, default=3)
-    parser.add_argument("--standards", type=str, default="152-ФЗ")
-    args = parser.parse_args()
-    standards = [s.strip() for s in args.standards.split(",") if s.strip()]
+def run_document(doc_key: str, doc: dict, runs: int, compiled_js: Path) -> bool:
+    print(f"\n{'#' * 70}\n# ДОКУМЕНТ: {doc['label']}\n{'#' * 70}")
 
-    from dotenv import load_dotenv
-    load_dotenv(ROOT / "backend" / ".env")
+    if not doc["fixture"].exists():
+        print(f"Фикстура не найдена: {doc['fixture']}", file=sys.stderr)
+        return False
 
-    if not FIXTURE.exists():
-        print(f"Фикстура не найдена: {FIXTURE}", file=sys.stderr)
-        sys.exit(1)
-
-    print(f"Компилирую anonymize.ts...")
-    compiled_js = compile_anonymize()
-    anonymize_out = run_anonymize(compiled_js, FIXTURE)
+    anonymize_out = run_anonymize(compiled_js, doc["fixture"])
     anonymized_text = anonymize_out["text"]
     print(f"Анонимизация: {anonymize_out['total']} замен, категории: {anonymize_out['counts']}")
-    print(f"Стандарты: {standards}\n")
+    print(f"Стандарты: {doc['standards']}")
 
     all_outcomes = []
 
-    for i in range(1, args.runs + 1):
-        print(f"{'=' * 70}\nЗАПУСК {i}/{args.runs}\n{'=' * 70}")
-        result = asyncio.run(run_once(anonymized_text, standards))
+    for i in range(1, runs + 1):
+        print(f"\n{'=' * 70}\nЗАПУСК {i}/{runs}\n{'=' * 70}")
+        result = asyncio.run(run_once(anonymized_text, doc["standards"]))
 
         print(f"Score: {result.get('score')} ({result.get('risk_label')})")
         print(f"degraded (фолбэк без DeepSeek): {result.get('degraded', False)}")
         print(f"Найдено нарушений: {len(result.get('violations', []))}")
         for v in result.get("violations", []):
             print(f"  - [{v.get('risk_level')}] {v.get('standard')} ({v.get('article')}): {v.get('title')}")
+            if v.get("quote"):
+                print(f"      цитата: {v.get('quote')!r}")
         print(f"scope_note: {result.get('scope_note')}")
 
-        outcomes = evaluate(result)
+        outcomes = evaluate(result, doc["checks"], doc["min_score"])
         all_outcomes.append(outcomes)
 
         print("\nПроверки:")
@@ -173,19 +223,40 @@ def main():
             expect = "должна быть" if o["expect_found"] else "НЕ должна быть"
             actual = "есть" if o["found"] else "нет"
             print(f"  [{status}] {o['name']} (ожидание: {expect}, факт: {actual})")
-            if not o["passed"]:
-                for m in o["matches"]:
-                    print(f"        -> сработало на: [{m.get('risk_level')}] {m.get('title')}: {m.get('description')}")
-        print()
+            for m in o["matches"]:
+                print(f"        -> [{m.get('risk_level')}] {m.get('title')}: {m.get('description')}")
 
-    print(f"{'=' * 70}\nСТАБИЛЬНОСТЬ ПО {args.runs} ПРОГОНАМ\n{'=' * 70}")
+    print(f"\n{'-' * 70}\nСТАБИЛЬНОСТЬ ПО {runs} ПРОГОНАМ — {doc['label']}\n{'-' * 70}")
     all_ok = True
-    for idx, check in enumerate(CHECKS):
+    num_checks = len(all_outcomes[0])
+    for idx in range(num_checks):
+        name = all_outcomes[0][idx]["name"]
         passed_count = sum(1 for run in all_outcomes if run[idx]["passed"])
-        marker = "OK" if passed_count == args.runs else "НЕСТАБИЛЬНО"
-        if passed_count != args.runs:
+        marker = "OK" if passed_count == runs else "НЕСТАБИЛЬНО"
+        if passed_count != runs:
             all_ok = False
-        print(f"  {passed_count}/{args.runs} [{marker}] — {check['name']}")
+        print(f"  {passed_count}/{runs} [{marker}] — {name}")
+
+    return all_ok
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--runs", type=int, default=3)
+    parser.add_argument("--doc", type=str, default="all", choices=[*DOCUMENTS.keys(), "all"])
+    args = parser.parse_args()
+
+    from dotenv import load_dotenv
+    load_dotenv(ROOT / "backend" / ".env")
+
+    print("Компилирую anonymize.ts...")
+    compiled_js = compile_anonymize()
+
+    doc_keys = list(DOCUMENTS.keys()) if args.doc == "all" else [args.doc]
+    all_ok = True
+    for key in doc_keys:
+        ok = run_document(key, DOCUMENTS[key], args.runs, compiled_js)
+        all_ok = all_ok and ok
 
     sys.exit(0 if all_ok else 1)
 
