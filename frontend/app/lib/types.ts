@@ -25,6 +25,10 @@ export interface AnalysisResult {
   standards: StandardScore[];
   violations: Violation[];
   action_checklist: string[];
+  /** Короткая оговорка об объёме проверки (сейчас только для privacy, см.
+   * backend/services/ai_privacy.py) — рендерится отдельной мелкой строкой под
+   * отчётом, не пунктом в action_checklist. */
+  scope_note?: string;
   is_full_report?: boolean;
   error?: string;
 }

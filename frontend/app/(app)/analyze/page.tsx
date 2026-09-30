@@ -474,6 +474,10 @@ export default function Home() {
               </ul>
             </Card>
           )}
+
+          {result.analysis.scope_note && (
+            <p className="text-xs text-ink-500">{result.analysis.scope_note}</p>
+          )}
         </div>
       )}
     </div>

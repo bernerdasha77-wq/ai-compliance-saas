@@ -6,6 +6,15 @@ from .scoring import parse_and_score, build_local_result
 
 DOC_TYPE = "privacy"
 
+# B6 (fix-analysis-quality.md) — дисклеймер об объёме проверки. Не зависит от
+# выбранных стандартов (даже GDPR-only проверка смотрит только загруженный
+# текст, а не формы на сайте) и от того, через DeepSeek или локальный
+# фолбэк получен результат — добавляется в обоих случаях, см. ниже.
+PRIVACY_SCOPE_NOTE = (
+    "Проверен только загруженный документ. Сверка с формами на сайте и "
+    "другими документами (согласие, cookie-политика) не проводилась."
+)
+
 LOCAL_CHECKS = [
     {
         "name": "Сбор и обработка данных",
@@ -52,7 +61,9 @@ LOCAL_CHECKS = [
 
 async def local_analyze(text: str) -> dict:
     """Базовый анализ политики конфиденциальности (бесплатный)"""
-    return build_local_result(text, LOCAL_CHECKS)
+    result = build_local_result(text, LOCAL_CHECKS)
+    result["scope_note"] = PRIVACY_SCOPE_NOTE
+    return result
 
 
 async def deepseek_analyze(text: str, standards: list[str]) -> dict:
@@ -78,4 +89,5 @@ async def deepseek_analyze(text: str, standards: list[str]) -> dict:
     if result.get("error"):
         return await _fallback("Не удалось разобрать ответ DeepSeek")
 
+    result["scope_note"] = PRIVACY_SCOPE_NOTE
     return result

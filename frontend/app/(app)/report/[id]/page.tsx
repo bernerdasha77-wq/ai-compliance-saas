@@ -144,6 +144,10 @@ export default function ReportPage() {
               </ul>
             </Card>
           )}
+
+          {report.analysis.scope_note && (
+            <p className="text-xs text-ink-500">{report.analysis.scope_note}</p>
+          )}
         </div>
       )}
     </div>

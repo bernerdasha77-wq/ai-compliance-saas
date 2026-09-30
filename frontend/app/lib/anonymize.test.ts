@@ -15,13 +15,13 @@ const REAL_SBERBANK_INN = '7707083893'; // реальный ИНН для про
 describe('телефоны', () => {
   it('распознаёт +7 с пробелами и скобками', () => {
     const r = anonymizeText('Звоните: +7 (999) 123-45-67');
-    expect(r.text).toBe('Звоните: [ТЕЛЕФОН СКРЫТ]');
+    expect(r.text).toBe('Звоните: [ТЕЛЕФОН_1]');
     expect(r.counts.phone).toBe(1);
   });
 
   it('распознаёт 8 без разделителей', () => {
     const r = anonymizeText('тел. 89991234567');
-    expect(r.text).toContain('[ТЕЛЕФОН СКРЫТ]');
+    expect(r.text).toContain('[ТЕЛЕФОН_1]');
     expect(r.counts.phone).toBe(1);
   });
 
@@ -30,15 +30,21 @@ describe('телефоны', () => {
     expect(r.counts.phone).toBe(1);
   });
 
-  it('распознаёт несколько телефонов в одном тексте', () => {
+  it('распознаёт несколько телефонов в одном тексте, разные номера получают разные метки', () => {
     const r = anonymizeText('Первый: +7 999 111 22 33, второй: 8 (495) 222-33-44');
     expect(r.counts.phone).toBe(2);
-    expect(r.text).not.toMatch(/\d/);
+    expect(r.text).toBe('Первый: [ТЕЛЕФОН_1], второй: [ТЕЛЕФОН_2]');
+  });
+
+  it('одинаковый номер, встреченный дважды, получает одну и ту же метку', () => {
+    const r = anonymizeText('Основной: +7 999 111 22 33. Продублирую: +7 999 111 22 33.');
+    expect(r.counts.phone).toBe(2);
+    expect(r.text).toBe('Основной: [ТЕЛЕФОН_1]. Продублирую: [ТЕЛЕФОН_1].');
   });
 
   it('распознаёт международный номер США (+1)', () => {
     const r = anonymizeText('Call us: +1 (555) 123-4567');
-    expect(r.text).toBe('Call us: [ТЕЛЕФОН СКРЫТ]');
+    expect(r.text).toBe('Call us: [ТЕЛЕФОН_1]');
     expect(r.counts.phone).toBe(1);
   });
 
@@ -65,16 +71,31 @@ describe('телефоны', () => {
 });
 
 describe('email', () => {
-  it('распознаёт простой email', () => {
+  it('распознаёт простой email, домен остаётся видимым', () => {
     const r = anonymizeText('Пишите на info@example.com за подробностями');
-    expect(r.text).toBe('Пишите на [EMAIL СКРЫТ] за подробностями');
+    expect(r.text).toBe('Пишите на [EMAIL_1@example.com] за подробностями');
     expect(r.counts.email).toBe(1);
+    expect(r.labelMap.EMAIL_1).toBe('info@example.com');
   });
 
   it('распознаёт email с точкой в имени и поддоменом', () => {
     const r = anonymizeText('ivan.petrov@mail.corp.example.co');
     expect(r.counts.email).toBe(1);
-    expect(r.text).toBe('[EMAIL СКРЫТ]');
+    expect(r.text).toBe('[EMAIL_1@mail.corp.example.co]');
+  });
+
+  it('разные адреса на разных доменах получают разные метки (в т.ч. с поддоменом www)', () => {
+    const r = anonymizeText('Основной: info@www.gorstom.ru, запасной: info@gorstom.ru');
+    expect(r.counts.email).toBe(2);
+    expect(r.text).toBe('Основной: [EMAIL_1@www.gorstom.ru], запасной: [EMAIL_2@gorstom.ru]');
+    expect(r.labelMap.EMAIL_1).toBe('info@www.gorstom.ru');
+    expect(r.labelMap.EMAIL_2).toBe('info@gorstom.ru');
+  });
+
+  it('один и тот же адрес, встреченный дважды, получает одну и ту же метку', () => {
+    const r = anonymizeText('Пишите на info@example.com или снова на info@example.com');
+    expect(r.counts.email).toBe(2);
+    expect(r.text).toBe('Пишите на [EMAIL_1@example.com] или снова на [EMAIL_1@example.com]');
   });
 });
 
@@ -82,7 +103,12 @@ describe('ИНН', () => {
   it('распознаёт валидный ИНН юрлица (10 цифр) по контрольной сумме', () => {
     const r = anonymizeText(`ИНН: ${VALID_INN_ORG}`);
     expect(r.counts.innOrg).toBe(1);
-    expect(r.text).toBe('ИНН: [ИНН СКРЫТ]');
+    expect(r.text).toBe('ИНН: [ИНН_1]');
+  });
+
+  it('ИНН юрлица и физлица делят общую нумерацию меток', () => {
+    const r = anonymizeText(`ИНН организации: ${VALID_INN_ORG}, ИНН физлица: ${VALID_INN_PERSON}`);
+    expect(r.text).toBe(`ИНН организации: [ИНН_1], ИНН физлица: [ИНН_2]`);
   });
 
   it('распознаёт валидный ИНН физлица/ИП (12 цифр) по контрольной сумме', () => {
@@ -131,7 +157,7 @@ describe('ОГРН / ОГРНИП', () => {
 describe('СНИЛС', () => {
   it('распознаёт стандартный формат XXX-XXX-XXX XX', () => {
     const r = anonymizeText('СНИЛС: 112-233-445 95');
-    expect(r.text).toBe('СНИЛС: [СНИЛС СКРЫТ]');
+    expect(r.text).toBe('СНИЛС: [СНИЛС_1]');
     expect(r.counts.snils).toBe(1);
   });
 });
@@ -139,7 +165,7 @@ describe('СНИЛС', () => {
 describe('паспорт РФ', () => {
   it('распознаёт формат "4 цифры пробел 6 цифр"', () => {
     const r = anonymizeText('Паспорт 4510 123456');
-    expect(r.text).toBe('Паспорт [ПАСПОРТ СКРЫТ]');
+    expect(r.text).toBe('Паспорт [ПАСПОРТ_1]');
     expect(r.counts.passportRu).toBe(1);
   });
 });

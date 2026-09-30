@@ -29,19 +29,18 @@ export interface AnonymizeCategory {
   key: AnonymizeCategoryKey;
   /** Название для сводки в UI, например "телефон" (без числа — оно подставляется отдельно) */
   label: string;
-  placeholder: string;
 }
 
 export const ANONYMIZE_CATEGORIES: Record<AnonymizeCategoryKey, AnonymizeCategory> = {
-  card: { key: 'card', label: 'номер карты', placeholder: '[КАРТА СКРЫТА]' },
-  ogrnip: { key: 'ogrnip', label: 'ОГРНИП', placeholder: '[ОГРНИП СКРЫТ]' },
-  ogrn: { key: 'ogrn', label: 'ОГРН', placeholder: '[ОГРН СКРЫТ]' },
-  snils: { key: 'snils', label: 'СНИЛС', placeholder: '[СНИЛС СКРЫТ]' },
-  passportRu: { key: 'passportRu', label: 'паспорт', placeholder: '[ПАСПОРТ СКРЫТ]' },
-  innOrg: { key: 'innOrg', label: 'ИНН', placeholder: '[ИНН СКРЫТ]' },
-  innPerson: { key: 'innPerson', label: 'ИНН', placeholder: '[ИНН СКРЫТ]' },
-  phone: { key: 'phone', label: 'телефон', placeholder: '[ТЕЛЕФОН СКРЫТ]' },
-  email: { key: 'email', label: 'email', placeholder: '[EMAIL СКРЫТ]' },
+  card: { key: 'card', label: 'номер карты' },
+  ogrnip: { key: 'ogrnip', label: 'ОГРНИП' },
+  ogrn: { key: 'ogrn', label: 'ОГРН' },
+  snils: { key: 'snils', label: 'СНИЛС' },
+  passportRu: { key: 'passportRu', label: 'паспорт' },
+  innOrg: { key: 'innOrg', label: 'ИНН' },
+  innPerson: { key: 'innPerson', label: 'ИНН' },
+  phone: { key: 'phone', label: 'телефон' },
+  email: { key: 'email', label: 'email' },
 };
 
 export interface CategoryResult {
@@ -51,9 +50,39 @@ export interface CategoryResult {
 
 export interface AnonymizeResult {
   text: string;
-  /** Количество замен по категории — только ненулевые категории для UI-сводки. */
+  /** Количество замен по категории — только ненулевые категории для UI-сводки.
+   * Считает вхождения (каждое совпадение в тексте), а не уникальные значения —
+   * то же поведение, что было до нумерованных меток: если один и тот же
+   * телефон встретился в тексте дважды, это по-прежнему count=2, хотя оба
+   * вхождения получат одну и ту же метку [ТЕЛЕФОН_1]. */
   counts: Partial<Record<AnonymizeCategoryKey, number>>;
   total: number;
+  /** Метка → оригинальное значение (для email — полный адрес, не только
+   * скрытая часть до "@"). Существует только в памяти браузера на время
+   * сессии анализа — не является частью того, что уходит на сервер (см.
+   * analyze/page.tsx: на бэкенд отправляется только result.text). */
+  labelMap: Record<string, string>;
+}
+
+/** Назначает номер меткам одной категории: одинаковый нормализованный ключ —
+ * одинаковый номер, в порядке первого появления в тексте (естественный
+ * порядок regex.replace слева направо). При первом появлении ключа
+ * запоминает оригинальное значение в labelMap под итоговой меткой
+ * (например, "EMAIL_1" → "info@www.gorstom.ru"), чтобы UI мог при желании
+ * восстановить исходное значение локально, без повторного обращения к
+ * исходному документу. */
+function createLabelAssigner(prefix: string, labelMap: Record<string, string>) {
+  const seen = new Map<string, number>();
+  let next = 1;
+  return (key: string, original: string): number => {
+    let n = seen.get(key);
+    if (n === undefined) {
+      n = next++;
+      seen.set(key, n);
+      labelMap[`${prefix}_${n}`] = original;
+    }
+    return n;
+  };
 }
 
 // ---- Контрольные суммы -------------------------------------------------
@@ -114,7 +143,7 @@ function ogrnipValid(digits: string): boolean {
 // нашлось бы 10-значное число, и т.п.), поэтому порядок вызова категорий
 // друг на друга не влияет.
 
-function redactCards(text: string): CategoryResult {
+function redactCards(text: string, nextLabel: (key: string, original: string) => number): CategoryResult {
   let count = 0;
   const result = text.replace(
     /(?<!\d)\d{4}[ -]?\d{4}[ -]?\d{4}[ -]?\d{4}(?!\d)/g,
@@ -122,81 +151,112 @@ function redactCards(text: string): CategoryResult {
       const digits = match.replace(/[ -]/g, '');
       if (!luhnValid(digits)) return match;
       count++;
-      return ANONYMIZE_CATEGORIES.card.placeholder;
+      const n = nextLabel(digits, match);
+      return `[КАРТА_${n}]`;
     }
   );
   return { text: result, count };
 }
 
-function redactOgrnip(text: string): CategoryResult {
+function redactOgrnip(text: string, nextLabel: (key: string, original: string) => number): CategoryResult {
   let count = 0;
   const result = text.replace(/(?<!\d)\d{15}(?!\d)/g, (match) => {
     if (!ogrnipValid(match)) return match;
     count++;
-    return ANONYMIZE_CATEGORIES.ogrnip.placeholder;
+    const n = nextLabel(match, match);
+    return `[ОГРНИП_${n}]`;
   });
   return { text: result, count };
 }
 
-function redactOgrn(text: string): CategoryResult {
+function redactOgrn(text: string, nextLabel: (key: string, original: string) => number): CategoryResult {
   let count = 0;
   const result = text.replace(/(?<!\d)\d{13}(?!\d)/g, (match) => {
     if (!ogrnValid(match)) return match;
     count++;
-    return ANONYMIZE_CATEGORIES.ogrn.placeholder;
+    const n = nextLabel(match, match);
+    return `[ОГРН_${n}]`;
   });
   return { text: result, count };
 }
 
-function redactSnils(text: string): CategoryResult {
+function redactSnils(text: string, nextLabel: (key: string, original: string) => number): CategoryResult {
   let count = 0;
   const result = text.replace(
     /(?<!\d)\d{3}-\d{3}-\d{3} \d{2}(?!\d)/g,
-    () => {
+    (match) => {
       count++;
-      return ANONYMIZE_CATEGORIES.snils.placeholder;
+      const n = nextLabel(match, match);
+      return `[СНИЛС_${n}]`;
     }
   );
   return { text: result, count };
 }
 
-function redactPassportRu(text: string): CategoryResult {
+function redactPassportRu(text: string, nextLabel: (key: string, original: string) => number): CategoryResult {
   let count = 0;
   // "серия + номер" — 4 цифры, пробел, 6 цифр (стандартное написание РФ).
   // Публично проверяемой контрольной суммы у паспорта РФ нет — только формат.
-  const result = text.replace(/(?<!\d)\d{4} \d{6}(?!\d)/g, () => {
+  const result = text.replace(/(?<!\d)\d{4} \d{6}(?!\d)/g, (match) => {
     count++;
-    return ANONYMIZE_CATEGORIES.passportRu.placeholder;
+    const n = nextLabel(match, match);
+    return `[ПАСПОРТ_${n}]`;
   });
   return { text: result, count };
 }
 
-function redactInn(text: string): { text: string; orgCount: number; personCount: number } {
+// ИНН юрлица и физлица/ИП используют ОДИН labeler (nextLabel) — нумерация
+// "ИНН_1", "ИНН_2"... общая для обоих подтипов, т.к. для пользователя в
+// сводке они и так объединены в один пункт "N ИНН" (см. formatRedactSummary).
+// Коллизий по ключу не бывает: у 10- и 12-значных ИНН разная длина строки.
+// В отличие от остальных категорий, тут два разных regex-паттерна (10 и 12
+// цифр) должны делить одну нумерацию строго в порядке появления В ТЕКСТЕ —
+// поэтому собираем совпадения обоих паттернов в один список, сортируем по
+// позиции и только потом присваиваем метки (простой двухпроходный .replace
+// дал бы порядок "все 12-значные, потом все 10-значные", а не порядок в тексте).
+function redactInn(
+  text: string,
+  nextLabel: (key: string, original: string) => number
+): { text: string; orgCount: number; personCount: number } {
   let orgCount = 0;
   let personCount = 0;
-  let result = text.replace(/(?<!\d)\d{12}(?!\d)/g, (match) => {
-    if (!inn12Valid(match)) return match;
-    personCount++;
-    return ANONYMIZE_CATEGORIES.innPerson.placeholder;
-  });
-  result = result.replace(/(?<!\d)\d{10}(?!\d)/g, (match) => {
-    if (!inn10Valid(match)) return match;
-    orgCount++;
-    return ANONYMIZE_CATEGORIES.innOrg.placeholder;
-  });
+
+  const matches: { index: number; length: number; digits: string; isOrg: boolean }[] = [];
+  for (const m of text.matchAll(/(?<!\d)\d{12}(?!\d)/g)) {
+    if (inn12Valid(m[0])) matches.push({ index: m.index!, length: m[0].length, digits: m[0], isOrg: false });
+  }
+  for (const m of text.matchAll(/(?<!\d)\d{10}(?!\d)/g)) {
+    if (inn10Valid(m[0])) matches.push({ index: m.index!, length: m[0].length, digits: m[0], isOrg: true });
+  }
+  matches.sort((a, b) => a.index - b.index);
+
+  let result = '';
+  let cursor = 0;
+  for (const m of matches) {
+    result += text.slice(cursor, m.index);
+    const n = nextLabel(m.digits, m.digits);
+    result += `[ИНН_${n}]`;
+    if (m.isOrg) orgCount++;
+    else personCount++;
+    cursor = m.index + m.length;
+  }
+  result += text.slice(cursor);
+
   return { text: result, orgCount, personCount };
 }
 
-function redactPhones(text: string): CategoryResult {
+function redactPhones(text: string, nextLabel: (key: string, original: string) => number): CategoryResult {
   let count = 0;
 
   // Российские номера: +7/8/7, опциональные разделители (пробел/точка/дефис),
   // опциональные скобки вокруг кода города/оператора, группы 3-3-2-2 цифр.
   let result = text.replace(
     /(?<!\d)(?:\+7|8|7)[\s.-]?\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{2}[\s.-]?\d{2}(?!\d)/g,
-    () => {
+    (match) => {
       count++;
-      return ANONYMIZE_CATEGORIES.phone.placeholder;
+      const digits = match.replace(/\D/g, '');
+      const n = nextLabel(digits, match);
+      return `[ТЕЛЕФОН_${n}]`;
     }
   );
 
@@ -214,19 +274,32 @@ function redactPhones(text: string): CategoryResult {
       const digits = match.replace(/\D/g, '');
       if (digits.length < 7 || digits.length > 15) return match;
       count++;
-      return ANONYMIZE_CATEGORIES.phone.placeholder;
+      const n = nextLabel(digits, match);
+      return `[ТЕЛЕФОН_${n}]`;
     }
   );
 
   return { text: result, count };
 }
 
-function redactEmails(text: string): CategoryResult {
+// Email — единственная категория, где скрывается не всё значение целиком:
+// часть до "@" заменяется меткой, домен остаётся виден. Это осознанно (см.
+// fix-analysis-quality.md): модель должна видеть, что info@www.gorstom.ru и
+// info@gorstom.ru — разные адреса (разные домены), а не один и тот же,
+// заменённый на одинаковую заглушку. Регэксп уже корректно ловит поддомены
+// (www.gorstom.ru целиком попадает в группу домена).
+function redactEmails(text: string, nextLabel: (key: string, original: string) => number): CategoryResult {
   let count = 0;
-  const result = text.replace(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g, () => {
-    count++;
-    return ANONYMIZE_CATEGORIES.email.placeholder;
-  });
+  const result = text.replace(
+    /[a-zA-Z0-9._%+-]+@([a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/g,
+    (match, domain: string) => {
+      count++;
+      // Ключ для сравнения дублей — весь адрес без учёта регистра (домены и
+      // обычно локальные части почты регистронезависимы на практике).
+      const n = nextLabel(match.toLowerCase(), match);
+      return `[EMAIL_${n}@${domain}]`;
+    }
+  );
   return { text: result, count };
 }
 
@@ -236,44 +309,45 @@ function redactEmails(text: string): CategoryResult {
  */
 export function anonymizeText(text: string): AnonymizeResult {
   const counts: Partial<Record<AnonymizeCategoryKey, number>> = {};
+  const labelMap: Record<string, string> = {};
   let current = text;
 
-  const card = redactCards(current);
+  const card = redactCards(current, createLabelAssigner('КАРТА', labelMap));
   current = card.text;
   if (card.count) counts.card = card.count;
 
-  const ogrnip = redactOgrnip(current);
+  const ogrnip = redactOgrnip(current, createLabelAssigner('ОГРНИП', labelMap));
   current = ogrnip.text;
   if (ogrnip.count) counts.ogrnip = ogrnip.count;
 
-  const ogrn = redactOgrn(current);
+  const ogrn = redactOgrn(current, createLabelAssigner('ОГРН', labelMap));
   current = ogrn.text;
   if (ogrn.count) counts.ogrn = ogrn.count;
 
-  const snils = redactSnils(current);
+  const snils = redactSnils(current, createLabelAssigner('СНИЛС', labelMap));
   current = snils.text;
   if (snils.count) counts.snils = snils.count;
 
-  const passport = redactPassportRu(current);
+  const passport = redactPassportRu(current, createLabelAssigner('ПАСПОРТ', labelMap));
   current = passport.text;
   if (passport.count) counts.passportRu = passport.count;
 
-  const inn = redactInn(current);
+  const inn = redactInn(current, createLabelAssigner('ИНН', labelMap));
   current = inn.text;
   if (inn.orgCount) counts.innOrg = inn.orgCount;
   if (inn.personCount) counts.innPerson = inn.personCount;
 
-  const phone = redactPhones(current);
+  const phone = redactPhones(current, createLabelAssigner('ТЕЛЕФОН', labelMap));
   current = phone.text;
   if (phone.count) counts.phone = phone.count;
 
-  const email = redactEmails(current);
+  const email = redactEmails(current, createLabelAssigner('EMAIL', labelMap));
   current = email.text;
   if (email.count) counts.email = email.count;
 
   const total = Object.values(counts).reduce((a, b) => a + (b ?? 0), 0);
 
-  return { text: current, counts, total };
+  return { text: current, counts, total, labelMap };
 }
 
 // ---- Сводка для UI (Фаза 2) ----------------------------------------------
