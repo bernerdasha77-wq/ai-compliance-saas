@@ -29,6 +29,11 @@ export interface AnalysisResult {
    * backend/services/ai_privacy.py) — рендерится отдельной мелкой строкой под
    * отчётом, не пунктом в action_checklist. */
   scope_note?: string;
+  /** Сколько из обязательного чек-листа (сейчас только 152-ФЗ, privacy, 14
+   * пунктов — см. DOC_CONFIGS["privacy"]["law_152_checklist"] в backend) модель
+   * сочла выполненными. Отсутствует, если чек-лист для этого анализа не
+   * подключался (другой doc_type или 152-ФЗ не выбран). */
+  checklist_completion?: { completed: number; total: number };
   is_full_report?: boolean;
   error?: string;
 }

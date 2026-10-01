@@ -447,6 +447,7 @@ export default function Home() {
             score={result.analysis.score}
             riskLabel={result.analysis.risk_label}
             standards={result.analysis.standards}
+            checklistCompletion={result.analysis.checklist_completion}
           />
 
           <div>

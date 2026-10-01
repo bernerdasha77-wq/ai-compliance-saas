@@ -21,7 +21,33 @@ TOP_N_FOR_SCORE = 5
 HIGH_RISK_SCORE_CAP = 60
 
 _RISK_ORDER = {"high": 3, "medium": 2, "low": 1}
-_RISK_LABELS = {"high": "высокий", "medium": "средний", "low": "низкий"}
+
+# Пороги score для risk_label, когда high-находок нет (см. _label_for) — те же
+# пороги, что были в самой первой версии scoring.py, до эксперимента с "меткой
+# по худшей находке": тот эксперимент оказался слишком суров (любая medium-
+# находка тянула метку в "средний" независимо от общего числа баллов) —
+# вернули порог для не-high случая, но сохранили жёсткий потолок/метку "высокий"
+# при наличии hugh-находки.
+LOW_RISK_SCORE_THRESHOLD = 80
+MEDIUM_RISK_SCORE_THRESHOLD = 50
+
+
+def _label_for(score: int, worst: str | None) -> str:
+    """high-находка — всегда "высокий" (и score уже прижат к HIGH_RISK_SCORE_CAP
+    в _score_for). Без high — метка по порогу самого score, а не по худшей
+    находке: иначе одна-единственная medium-находка на иначе образцовом
+    документе тянула бы метку в "средний" независимо от того, сколько баллов
+    реально осталось."""
+    if worst == "high":
+        return "высокий"
+    if score >= LOW_RISK_SCORE_THRESHOLD:
+        return "низкий"
+    if score >= MEDIUM_RISK_SCORE_THRESHOLD:
+        return "средний"
+    # Без high-находки, но score всё равно низкий (при текущих весах почти
+    # недостижимо — см. TOP_N_FOR_SCORE/RISK_WEIGHTS, но предохранитель на
+    # случай будущих изменений весов).
+    return "высокий"
 
 
 def _match_standard(name: str, standards: list[str]) -> str | None:
@@ -71,14 +97,14 @@ def compute_scores(violations: list[dict], standards: list[str]) -> tuple[int, s
     Не зависит от того, как DeepSeek сформулировал общий вывод, поэтому
     исключает рассинхронизацию текста и цифр.
 
-    risk_label определяется САМОЙ СЕРЬЁЗНОЙ находкой (а не числовым порогом
-    score) — "высокий", если есть хотя бы одна high-находка (см.
-    HIGH_RISK_SCORE_CAP выше), иначе "средний"/"низкий" по худшей находке,
-    иначе (находок нет вовсе) "низкий"."""
+    risk_label — "высокий", если есть хотя бы одна high-находка (см.
+    HIGH_RISK_SCORE_CAP выше); иначе определяется порогом самого score (см.
+    _label_for) — "низкий" от LOW_RISK_SCORE_THRESHOLD и выше, "средний" от
+    MEDIUM_RISK_SCORE_THRESHOLD."""
     overall = _score_for(violations)
 
     worst = _worst_risk_level(violations)
-    risk_label = _RISK_LABELS.get(worst, "низкий")
+    risk_label = _label_for(overall, worst)
 
     per_standard = {}
     for s in standards:
@@ -126,6 +152,22 @@ def normalize_violation(raw: dict, index: int) -> dict | None:
         "recommendation": raw.get("recommendation", ""),
         "suggested_wording": _normalize_suggested_wording(raw.get("suggested_wording")),
     }
+
+
+def _parse_checklist_status(raw_status) -> dict | None:
+    """Разбирает "law_152_checklist_status" (массив из 14 true/false — см.
+    DOC_CONFIGS["privacy"]["law_152_checklist"] в prompts.py) в {"completed",
+    "total"} для отображения "Выполнено N из 14 требований" на фронте.
+    Возвращает None, если поля нет или оно повреждено (неверная длина) —
+    чек-лист подключается не для всех doc_type/стандартов, отсутствие поля
+    это нормальный случай, а не ошибка."""
+    if not isinstance(raw_status, list) or len(raw_status) != 14:
+        return None
+    completed = sum(
+        1 for x in raw_status
+        if x is True or (isinstance(x, str) and x.strip().lower() == "true")
+    )
+    return {"completed": completed, "total": 14}
 
 
 def build_error_result(message: str) -> dict:
@@ -180,13 +222,19 @@ def parse_and_score(raw: str, standards: list[str], always_active: str | None = 
     ]
     score, risk_label, standards_out = compute_scores(scored_violations, scored_standards)
 
-    return {
+    result = {
         "score": score,
         "risk_label": risk_label,
         "standards": standards_out,
         "violations": violations,
         "action_checklist": data.get("action_checklist", []),
     }
+
+    checklist_completion = _parse_checklist_status(data.get("law_152_checklist_status"))
+    if checklist_completion:
+        result["checklist_completion"] = checklist_completion
+
+    return result
 
 
 def build_local_result(text: str, checks: list[dict]) -> dict:

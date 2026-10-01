@@ -122,6 +122,7 @@ export default function ReportPage() {
             score={report.analysis.score}
             riskLabel={report.analysis.risk_label}
             standards={report.analysis.standards}
+            checklistCompletion={report.analysis.checklist_completion}
           />
 
           <div>

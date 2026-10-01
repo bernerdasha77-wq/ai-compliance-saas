@@ -154,6 +154,26 @@ DOCUMENTS = {
         "checks": GORSTOM_CHECKS,
         "min_score": None,
     },
+    # "Горстом исправленный" — тест на сходимость: к оригинальному тексту
+    # применены ВСЕ suggested_wording, которые сервис сам предложил при
+    # анализе оригинала (см. историю в чате). Если сервис не находит high и
+    # даёт score>=80 на документе, построенном из его же собственных
+    # рекомендаций, — рекомендации реально закрывают то, что сервис считает
+    # нарушением (сходимость пайплайна), а не просто расходятся с его же
+    # собственной оценкой.
+    "gorstom-fixed": {
+        "label": "Горстом исправленный (все suggested_wording применены к оригиналу)",
+        "fixture": FIXTURES_DIR / "gorstom-policy-fixed.txt",
+        "standards": ["152-ФЗ"],
+        "checks": [
+            {
+                "name": "Нет находок высокого риска (risk_level=high)",
+                "expect_found": False,
+                "match": lambda v: v.get("risk_level") == "high",
+            },
+        ],
+        "min_score": 80,
+    },
     "own-privacy": {
         "label": "Собственная политика (ai-compliance.online/privacy)",
         "fixture": FIXTURES_DIR / "ai-compliance-privacy.txt",
@@ -233,6 +253,9 @@ def run_document(doc_key: str, doc: dict, runs: int, compiled_js: Path) -> bool:
         result = asyncio.run(run_once(anonymized_text, doc["standards"]))
 
         print(f"Score: {result.get('score')} ({result.get('risk_label')})")
+        cc = result.get("checklist_completion")
+        if cc:
+            print(f"Чек-лист: выполнено {cc['completed']} из {cc['total']}")
         print(f"degraded (фолбэк без DeepSeek): {result.get('degraded', False)}")
         print(f"Найдено нарушений: {len(result.get('violations', []))}")
         for v in result.get("violations", []):

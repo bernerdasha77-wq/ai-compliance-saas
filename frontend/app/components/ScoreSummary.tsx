@@ -7,10 +7,15 @@ export default function ScoreSummary({
   score,
   riskLabel,
   standards,
+  checklistCompletion,
 }: {
   score: number;
   riskLabel: string;
   standards: StandardScore[];
+  /** Сколько пунктов обязательного чек-листа (сейчас только 152-ФЗ, privacy)
+   * модель сочла выполненными — см. backend/services/scoring.py. Отсутствует
+   * для doc_type/стандартов, где такого чек-листа нет. */
+  checklistCompletion?: { completed: number; total: number };
 }) {
   const { text } = scoreColor(score);
 
@@ -22,6 +27,11 @@ export default function ScoreSummary({
           <div className="text-center sm:text-left">
             <p className="text-xs text-ink-500 font-medium uppercase tracking-wide">Общий риск</p>
             <p className={`text-lg font-semibold capitalize ${text}`}>{riskLabel}</p>
+            {checklistCompletion && (
+              <p className="text-xs text-ink-500 mt-1">
+                Выполнено {checklistCompletion.completed} из {checklistCompletion.total} требований
+              </p>
+            )}
           </div>
         </div>
 
